@@ -1,0 +1,74 @@
+import type { Character, ConsequenceType } from './types';
+
+// Applies a list of consequences to the character, returning a new character object.
+// The player never sees these changes directly — they shape future events and narrative.
+
+export function applyConsequences(
+  character: Character,
+  consequences: ConsequenceType[]
+): Character {
+  // Deep clone to avoid mutation
+  const next: Character = {
+    ...character,
+    wounds: { ...character.wounds },
+    values: { ...character.values },
+    desires: [...character.desires],
+    flags: { ...character.flags },
+    reputation: { ...character.reputation },
+    relationships: Object.fromEntries(
+      Object.entries(character.relationships).map(([k, v]) => [
+        k,
+        { ...v, flags: [...v.flags] },
+      ])
+    ),
+  };
+
+  for (const c of consequences) {
+    switch (c.type) {
+      case 'wound': {
+        const current = next.wounds[c.key] ?? 0;
+        next.wounds[c.key] = Math.max(0, Math.min(5, current + c.delta));
+        break;
+      }
+
+      case 'value': {
+        const current = next.values[c.key] ?? 0;
+        next.values[c.key] = Math.max(0, Math.min(5, current + c.delta));
+        break;
+      }
+
+      case 'flag': {
+        next.flags[c.key] = c.value;
+        break;
+      }
+
+      case 'relationship_closeness': {
+        if (next.relationships[c.key]) {
+          next.relationships[c.key] = {
+            ...next.relationships[c.key],
+            closeness: Math.max(-5, Math.min(5, next.relationships[c.key].closeness + c.delta)),
+          };
+        }
+        break;
+      }
+
+      case 'relationship_add': {
+        next.relationships[c.relationship.id] = c.relationship;
+        next.flags[`has_${c.relationship.id}`] = true;
+        break;
+      }
+
+      case 'occupation': {
+        next.occupation = c.value;
+        break;
+      }
+
+      case 'income': {
+        next.income = c.value;
+        break;
+      }
+    }
+  }
+
+  return next;
+}
