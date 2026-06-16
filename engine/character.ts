@@ -1,4 +1,53 @@
-import type { Character, NewGameConfig, Relationship } from './types';
+import type { Character, NewGameConfig, Relationship, StatType, FamilyClass, FamilyStability } from './types';
+
+// ─── Stat Seeding ─────────────────────────────────────────────────────────
+// Starting stats are shaped by family background + randomness.
+// Kids start high on fitness (they're children), vary on the rest.
+
+function rand(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function clamp(n: number): number {
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function seedStats(
+  familyClass: FamilyClass,
+  familyStability: FamilyStability
+): Record<StatType, number> {
+  // Health — affected by class (nutrition, healthcare access)
+  const healthBase = familyClass === 'poor' ? 65 : familyClass === 'working' ? 72 : 78;
+  const health = clamp(healthBase + rand(0, 15));
+
+  // Happiness — driven by stability
+  const happinessBase =
+    familyStability === 'strong' ? 72 :
+    familyStability === 'stable' ? 62 :
+    familyStability === 'struggling' ? 48 : 35;
+  const happiness = clamp(happinessBase + rand(0, 15));
+
+  // Looks — mostly genetic luck, slight class effect (nutrition)
+  const looksBase = familyClass === 'poor' ? 42 : 48;
+  const looks = clamp(looksBase + rand(0, 30));
+
+  // Smarts — class affects access to stimulation and education early on
+  const smartsBase =
+    familyClass === 'upper' ? 58 :
+    familyClass === 'middle' ? 52 :
+    familyClass === 'working' ? 48 : 44;
+  const smarts = clamp(smartsBase + rand(0, 25));
+
+  // Fitness — kids are naturally active; volatility at home can suppress it
+  const fitnessBase = familyStability === 'volatile' ? 60 : 70;
+  const fitness = clamp(fitnessBase + rand(0, 20));
+
+  // Charisma — random, slightly boosted by stable homes (security → openness)
+  const charismaBase = familyStability === 'strong' || familyStability === 'stable' ? 48 : 42;
+  const charisma = clamp(charismaBase + rand(0, 28));
+
+  return { health, happiness, looks, smarts, fitness, charisma };
+}
 
 // ─── Default Relationship Templates ───────────────────────────────────────
 
@@ -31,7 +80,6 @@ function createFather(
 }
 
 // ─── Wound Seeding ─────────────────────────────────────────────────────────
-// Based on family stability — seeds starting wound profile invisibly
 
 function seedWounds(
   stability: Character['familyStability'],
@@ -114,6 +162,7 @@ export function createCharacter(config: NewGameConfig): Character {
     location,
     familyClass,
     familyStability,
+    stats: seedStats(familyClass, familyStability),
     wounds: seedWounds(familyStability, familyClass),
     values: seedValues(familyStability, familyClass),
     desires: ['love', 'meaning'],

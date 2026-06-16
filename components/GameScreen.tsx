@@ -2,13 +2,66 @@
 
 import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
-import type { Choice } from '../engine/types';
+import type { Choice, StatType } from '../engine/types';
 
-// ─── Age Display ───────────────────────────────────────────────────────────
+// ─── Stat Bar Config ───────────────────────────────────────────────────────
+
+const STAT_ORDER: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
+
+const STAT_LABEL: Record<StatType, string> = {
+  health:    'HLT',
+  happiness: 'HPY',
+  looks:     'LKS',
+  smarts:    'SMT',
+  fitness:   'FIT',
+  charisma:  'CHR',
+};
+
+const STAT_COLOR: Record<StatType, string> = {
+  health:    '#f43f5e', // rose
+  happiness: '#fbbf24', // amber
+  looks:     '#c084fc', // purple
+  smarts:    '#38bdf8', // sky
+  fitness:   '#34d399', // emerald
+  charisma:  '#fb923c', // orange
+};
+
+// ─── Stats Panel ───────────────────────────────────────────────────────────
+
+function StatsPanel() {
+  const stats = useGameStore((s) => s.character.stats);
+
+  return (
+    <div className="px-5 pt-3 pb-3 grid grid-cols-6 gap-3 border-b border-zinc-900">
+      {STAT_ORDER.map((key) => {
+        const value = Math.round(stats[key] ?? 0);
+        return (
+          <div key={key} className="flex flex-col items-center gap-1">
+            <span className="text-zinc-600 text-[9px] tracking-widest uppercase">
+              {STAT_LABEL[key]}
+            </span>
+            {/* Bar track */}
+            <div className="w-full h-[3px] bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${value}%`,
+                  backgroundColor: STAT_COLOR[key],
+                }}
+              />
+            </div>
+            <span className="text-zinc-500 text-[9px] tabular-nums">{value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Age Bar ───────────────────────────────────────────────────────────────
 
 function AgeBar() {
   const { age, character } = useGameStore();
-  const decade = Math.floor(age / 10) * 10;
 
   const lifeStage =
     age < 13 ? 'Childhood' :
@@ -19,8 +72,8 @@ function AgeBar() {
     age < 70 ? 'Later Life' : 'Elder Years';
 
   return (
-    <div className="sticky top-0 z-10 bg-black border-b border-zinc-800 px-5 py-4">
-      <div className="flex items-baseline justify-between">
+    <div className="sticky top-0 z-10 bg-black border-b border-zinc-800">
+      <div className="px-5 py-4 flex items-baseline justify-between">
         <div className="flex items-baseline gap-3">
           <span className="text-3xl font-light text-white tabular-nums">{age}</span>
           <span className="text-zinc-500 text-sm">{lifeStage}</span>
@@ -29,6 +82,7 @@ function AgeBar() {
           {character.location} · {character.birthYear + age}
         </span>
       </div>
+      <StatsPanel />
     </div>
   );
 }
@@ -96,7 +150,7 @@ export default function GameScreen() {
   return (
     <div className="flex flex-col h-screen bg-black max-w-lg mx-auto">
 
-      {/* Top bar */}
+      {/* Top bar — age + stats */}
       <AgeBar />
 
       {/* Menu bar */}
@@ -120,7 +174,6 @@ export default function GameScreen() {
           />
         ))}
 
-        {/* Pending event choices */}
         {pendingEvent && pendingEvent.choices && (
           <div className="mt-2" />
         )}

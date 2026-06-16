@@ -1,10 +1,46 @@
 'use client';
 
 import { create } from 'zustand';
-import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice } from '../engine/types';
+import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice, Character } from '../engine/types';
 import { createCharacter } from '../engine/character';
 import { applyConsequences } from '../engine/consequences';
 import { selectEvent, interpolate } from '../engine/eventSelector';
+
+// ─── Natural Aging ─────────────────────────────────────────────────────────
+// Stats decline naturally with age. Players can slow this via events/choices.
+// All deltas are per year — multiplied by tapSpeed.
+
+function applyNaturalAging(character: Character, age: number, years: number): Character {
+  const stats = { ...character.stats };
+
+  // Health — gradual decline starts at 40, steeper at 65
+  if (age > 65) {
+    stats.health = Math.max(0, stats.health - 0.6 * years);
+  } else if (age > 40) {
+    stats.health = Math.max(0, stats.health - 0.25 * years);
+  }
+
+  // Looks — begins fading late 20s, accelerates at 45
+  if (age > 45) {
+    stats.looks = Math.max(0, stats.looks - 0.7 * years);
+  } else if (age > 27) {
+    stats.looks = Math.max(0, stats.looks - 0.35 * years);
+  }
+
+  // Fitness — starts declining in early 30s without maintenance
+  if (age > 30) {
+    stats.fitness = Math.max(0, stats.fitness - 0.3 * years);
+  }
+
+  // Smarts — peak in 30s, very slight decline after 70
+  if (age > 70) {
+    stats.smarts = Math.max(0, stats.smarts - 0.15 * years);
+  }
+
+  // Happiness and Charisma — fully event-driven, no natural decay
+
+  return { ...character, stats };
+}
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -147,11 +183,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
+    // Apply natural aging to stats each year
+    let newCharacter = applyNaturalAging(state.character, newAge, state.tapSpeed);
+
     // Select an event for this age
-    const event = selectEvent(newAge, state.character, state.firedEventIds);
+    const event = selectEvent(newAge, newCharacter, state.firedEventIds);
 
     const newFiredIds = new Set(state.firedEventIds);
-    let newCharacter = state.character;
     const newEvents = [...state.lifeEvents];
 
     if (event) {
@@ -162,7 +200,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         newEvents.push({
           id: event.id,
           age: newAge,
-          text: interpolate(event.narrative, state.character),
+          text: interpolate(event.narrative, newCharacter),
         });
 
         const newState: GameState = {
@@ -178,11 +216,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return;
       } else if (event.autoConsequences) {
         // Auto event — fire immediately
-        newCharacter = applyConsequences(state.character, event.autoConsequences);
+        newCharacter = applyConsequences(newCharacter, event.autoConsequences);
         newEvents.push({
           id: event.id,
           age: newAge,
-          text: interpolate(event.narrative, state.character),
+          text: interpolate(event.narrative, newCharacter),
         });
       }
     } else {

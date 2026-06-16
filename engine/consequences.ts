@@ -1,7 +1,8 @@
 import type { Character, ConsequenceType } from './types';
 
 // Applies a list of consequences to the character, returning a new character object.
-// The player never sees these changes directly — they shape future events and narrative.
+// The player never sees wounds/values/flags — they shape future events and narrative.
+// Stats (health, happiness, looks, smarts, fitness, charisma) are visible to the player.
 
 export function applyConsequences(
   character: Character,
@@ -10,6 +11,7 @@ export function applyConsequences(
   // Deep clone to avoid mutation
   const next: Character = {
     ...character,
+    stats: { ...character.stats },
     wounds: { ...character.wounds },
     values: { ...character.values },
     desires: [...character.desires],
@@ -25,6 +27,12 @@ export function applyConsequences(
 
   for (const c of consequences) {
     switch (c.type) {
+      case 'stat': {
+        const current = next.stats[c.key] ?? 50;
+        next.stats[c.key] = Math.max(0, Math.min(100, current + c.delta));
+        break;
+      }
+
       case 'wound': {
         const current = next.wounds[c.key] ?? 0;
         next.wounds[c.key] = Math.max(0, Math.min(5, current + c.delta));

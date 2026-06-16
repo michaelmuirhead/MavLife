@@ -1,5 +1,13 @@
 // ─── Core Character Types ──────────────────────────────────────────────────
 
+export type StatType =
+  | 'health'
+  | 'happiness'
+  | 'looks'
+  | 'smarts'
+  | 'fitness'
+  | 'charisma';
+
 export type WoundType =
   | 'abandonment'
   | 'powerlessness'
@@ -44,6 +52,9 @@ export interface Character {
   location: string;
   gender: 'male' | 'female' | 'nonbinary';
 
+  // Visible stats — shown to player as bars (0–100)
+  stats: Record<StatType, number>;
+
   // Internal systems — never shown to player
   wounds: Partial<Record<WoundType, number>>;
   values: Partial<Record<ValueType, number>>;
@@ -64,6 +75,7 @@ export interface Character {
 // ─── Event System ─────────────────────────────────────────────────────────
 
 export type ConsequenceType =
+  | { type: 'stat'; key: StatType; delta: number }
   | { type: 'wound'; key: WoundType; delta: number }
   | { type: 'value'; key: ValueType; delta: number }
   | { type: 'flag'; key: string; value: boolean | string | number }
