@@ -17,6 +17,8 @@ export function applyConsequences(
     desires: [...character.desires],
     flags: { ...character.flags },
     reputation: { ...character.reputation },
+    assets: [...character.assets],
+    conditions: [...character.conditions],
     relationships: Object.fromEntries(
       Object.entries(character.relationships).map(([k, v]) => [
         k,
@@ -89,6 +91,28 @@ export function applyConsequences(
 
       case 'salary': {
         next.salary = Math.max(0, (next.salary ?? 0) + c.delta);
+        break;
+      }
+
+      case 'asset_add': {
+        next.assets = [...next.assets, c.asset];
+        break;
+      }
+
+      case 'asset_remove': {
+        next.assets = next.assets.filter((a) => a.instanceId !== c.instanceId);
+        break;
+      }
+
+      case 'condition_add': {
+        if (!next.conditions.some((x) => x.id === c.condition.id)) {
+          next.conditions = [...next.conditions, c.condition];
+        }
+        break;
+      }
+
+      case 'condition_remove': {
+        next.conditions = next.conditions.filter((x) => x.id !== c.id);
         break;
       }
     }

@@ -3,9 +3,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import type { Choice, StatType, Character, LifeEvent } from '../engine/types';
-import type { ActivityCategory } from '../engine/activities/types';
 import ActivitiesModal from './ActivitiesModal';
 import CareerModal from './CareerModal';
+import AssetsModal from './AssetsModal';
+import RelationshipsModal from './RelationshipsModal';
+import EducationModal from './EducationModal';
+import HealthModal from './HealthModal';
+
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health';
+
+const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
+  { key: 'relationships', emoji: '🫂', label: 'Relations' },
+  { key: 'activities',    emoji: '💪', label: 'Activities' },
+  { key: 'education',     emoji: '🎓', label: 'School' },
+  { key: 'career',        emoji: '💼', label: 'Career' },
+  { key: 'health',        emoji: '❤️', label: 'Health' },
+  { key: 'assets',        emoji: '🏠', label: 'Assets' },
+];
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
 
@@ -71,7 +85,7 @@ function StatsPanel() {
 // ─── Character Card ─────────────────────────────────────────────────────────
 
 function CharacterCard() {
-  const { character, age } = useGameStore();
+  const { character, age, generation } = useGameStore();
 
   const lifeStage =
     age < 1 ? 'Newborn' :
@@ -94,6 +108,11 @@ function CharacterCard() {
             <span className="text-[#1f86d8] font-extrabold text-lg leading-tight truncate">
               {character.name}
             </span>
+            {generation > 1 && (
+              <span className="text-[9px] font-black text-white bg-[#1f86d8] rounded-full px-1.5 py-0.5 shrink-0">
+                GEN {generation}
+              </span>
+            )}
           </div>
           <div className="text-[#7a7a7a] text-xs font-bold truncate flex items-center gap-2">
             <span>🧬 {role}</span>
@@ -175,53 +194,36 @@ function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (
   );
 }
 
-// ─── Action Bar (nav shortcuts + Age button) ───────────────────────────────
+// ─── Action Bar (nav row + Age button) ──────────────────────────────────────
 
-function ActionBar({
-  onTap,
-  onOpenActivities,
-  onOpenCareer,
-}: {
-  onTap: () => void;
-  onOpenActivities: (c: ActivityCategory) => void;
-  onOpenCareer: () => void;
-}) {
+function ActionBar({ onTap, onOpen }: { onTap: () => void; onOpen: (k: ModalKey) => void }) {
   return (
-    <div className="brick-bg flex items-center justify-between px-5 py-3.5 border-t-2 border-[#c4c4c4]">
-      <div className="flex gap-3">
-        <NavButton emoji="💪" label="Body" onClick={() => onOpenActivities('mind_body')} />
-        <NavButton emoji="🫂" label="Social" onClick={() => onOpenActivities('social')} />
+    <div className="brick-bg flex flex-col items-center gap-2.5 pt-2.5 pb-3.5 border-t-2 border-[#c4c4c4]">
+      <div className="flex gap-3.5">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => onOpen(item.key)}
+            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
+            aria-label={item.label}
+          >
+            <span className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-xl">
+              {item.emoji}
+            </span>
+            <span className="text-[10px] font-extrabold text-[#666]">{item.label}</span>
+          </button>
+        ))}
       </div>
 
       <button
         onClick={onTap}
-        className="btn-3d w-[88px] h-[88px] rounded-full bg-[#46b93a] border-[#34972b] text-white flex flex-col items-center justify-center shadow-lg hover:bg-[#4ec441] active:bg-[#3ea832] shrink-0"
+        className="btn-3d w-20 h-20 rounded-full bg-[#46b93a] border-[#34972b] text-white flex flex-col items-center justify-center shadow-lg hover:bg-[#4ec441] active:bg-[#3ea832]"
         aria-label="Age up one year"
       >
-        <span className="text-4xl font-black leading-none -mt-1">+</span>
-        <span className="text-sm font-extrabold tracking-wide -mt-0.5">Age</span>
+        <span className="text-3xl font-black leading-none -mt-1">+</span>
+        <span className="text-xs font-extrabold tracking-wide -mt-0.5">Age</span>
       </button>
-
-      <div className="flex gap-3">
-        <NavButton emoji="💼" label="Career" onClick={onOpenCareer} />
-        <NavButton emoji="💰" label="Money" onClick={() => onOpenActivities('money')} />
-      </div>
     </div>
-  );
-}
-
-function NavButton({ emoji, label, onClick }: { emoji: string; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
-      aria-label={label}
-    >
-      <span className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-xl">
-        {emoji}
-      </span>
-      <span className="text-[10px] font-extrabold text-[#666]">{label}</span>
-    </button>
   );
 }
 
@@ -230,8 +232,7 @@ function NavButton({ emoji, label, onClick }: { emoji: string; label: string; on
 export default function GameScreen() {
   const { lifeEvents, pendingEvent, tap, makeChoice, goToTitle } = useGameStore();
   const feedRef = useRef<HTMLDivElement>(null);
-  const [activitiesCategory, setActivitiesCategory] = useState<ActivityCategory | null>(null);
-  const [careerOpen, setCareerOpen] = useState(false);
+  const [openModal, setOpenModal] = useState<ModalKey | null>(null);
 
   useEffect(() => {
     if (feedRef.current) {
@@ -272,26 +273,19 @@ export default function GameScreen() {
       {hasChoice ? (
         <ChoiceInterface choices={pendingEvent!.choices!} onChoice={makeChoice} />
       ) : (
-        <ActionBar
-          onTap={tap}
-          onOpenActivities={setActivitiesCategory}
-          onOpenCareer={() => setCareerOpen(true)}
-        />
+        <ActionBar onTap={tap} onOpen={setOpenModal} />
       )}
 
       {/* Stats */}
       <StatsPanel />
 
-      {/* Activities modal */}
-      {activitiesCategory && (
-        <ActivitiesModal
-          initialCategory={activitiesCategory}
-          onClose={() => setActivitiesCategory(null)}
-        />
-      )}
-
-      {/* Career modal */}
-      {careerOpen && <CareerModal onClose={() => setCareerOpen(false)} />}
+      {/* Modals */}
+      {openModal === 'activities' && <ActivitiesModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'career' && <CareerModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'assets' && <AssetsModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'relationships' && <RelationshipsModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'education' && <EducationModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'health' && <HealthModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

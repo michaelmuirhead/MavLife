@@ -133,4 +133,106 @@ export const MIND_BODY_ACTIVITIES: Activity[] = [
     ],
   },
 
+  {
+    id: 'study_library',
+    category: 'mind_body',
+    label: 'Study at the library',
+    blurb: 'Read past the point of usefulness.',
+    ageRange: [8, 90],
+    outcomes: [
+      {
+        id: 'sharp',
+        weight: 80,
+        narrative:
+          'You read widely and without assignment, the way that lodges things deeper than any class ever did.',
+        consequences: [
+          { type: 'stat', key: 'smarts', delta: 5 },
+          { type: 'value', key: 'meaning', delta: 1 },
+        ],
+      },
+      {
+        id: 'distracted',
+        weight: 20,
+        narrative: 'You meant to study. You read the same paragraph four times and then watched the rain.',
+        consequences: [{ type: 'stat', key: 'smarts', delta: 1 }],
+      },
+    ],
+  },
+
+  {
+    id: 'salon',
+    category: 'mind_body',
+    label: 'Visit a salon',
+    blurb: 'A cut, a treatment, an afternoon on yourself.',
+    ageRange: [12, 90],
+    cost: 150,
+    requires: { minMoney: 150 },
+    outcomes: [
+      {
+        id: 'great',
+        weight: 100,
+        narrative: 'You left looking like the better-rested version of yourself. It’s amazing what a good cut does to a week.',
+        consequences: [
+          { type: 'stat', key: 'looks', delta: 5 },
+          { type: 'stat', key: 'happiness', delta: 2 },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: 'plastic_surgery',
+    category: 'mind_body',
+    label: 'Get plastic surgery',
+    blurb: 'Pay to change what the mirror shows.',
+    ageRange: [21, 90],
+    cost: 12000,
+    requires: { minMoney: 12000 },
+    outcomes: [
+      {
+        id: 'success',
+        weight: 75,
+        narrative:
+          'The work was good — subtle enough that people only said you looked well-rested. You knew exactly what they were seeing.',
+        consequences: [
+          { type: 'stat', key: 'looks', delta: 18 },
+          { type: 'stat', key: 'happiness', delta: 3 },
+        ],
+      },
+      {
+        id: 'botched',
+        weight: 25,
+        narrative:
+          'Something about it never sat right — too tight, too changed, a face that answered a question no one had asked. Regret has a long recovery time.',
+        consequences: [
+          { type: 'stat', key: 'looks', delta: -8 },
+          { type: 'stat', key: 'happiness', delta: -5 },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: 'vacation',
+    category: 'mind_body',
+    label: 'Take a vacation',
+    blurb: 'Leave the life for a while to remember you have one.',
+    ageRange: [10, 90],
+    cost: 3000,
+    requires: { minMoney: 3000 },
+    outcomes: [
+      {
+        id: 'restorative',
+        weight: 100,
+        narrative:
+          'You went somewhere that asked nothing of you, and let it. You came back a little browner and a lot more yourself.',
+        consequences: [
+          { type: 'stat', key: 'happiness', delta: 9 },
+          { type: 'stat', key: 'health', delta: 3 },
+          { type: 'wound', key: 'powerlessness', delta: -1 },
+        ],
+      },
+    ],
+  },
+
 ];

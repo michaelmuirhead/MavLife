@@ -38,10 +38,30 @@ export type FamilyClass = 'poor' | 'working' | 'middle' | 'upper';
 export type FamilyStability = 'volatile' | 'struggling' | 'stable' | 'strong';
 export type IncomeLevel = 'none' | 'low' | 'medium' | 'high' | 'wealthy';
 
+export type AssetCategory = 'home' | 'vehicle' | 'pet' | 'luxury';
+
+// An active health condition (the static definition lives in content/health).
+export interface ActiveCondition {
+  id: string;
+  name: string;
+  since: number; // age of onset
+}
+
+// An owned instance of an asset (the catalog definition lives in content/assets).
+export interface OwnedAsset {
+  instanceId: string;
+  defId: string;
+  name: string;
+  category: AssetCategory;
+  purchasePrice: number;
+  value: number; // current resale value; drifts each year
+  acquiredAge: number;
+}
+
 export interface Relationship {
   id: string;
   name: string;
-  type: 'mother' | 'father' | 'sibling' | 'friend' | 'romantic' | 'rival' | 'mentor' | 'colleague';
+  type: 'mother' | 'father' | 'sibling' | 'friend' | 'romantic' | 'rival' | 'mentor' | 'colleague' | 'child';
   closeness: number; // -5 to 5
   alive: boolean;
   flags: string[];
@@ -73,6 +93,8 @@ export interface Character {
   income: IncomeLevel;
   money: number; // bank balance; clamped at 0, never negative for now
   salary: number; // annual income from current job; 0 if unemployed
+  assets: OwnedAsset[];
+  conditions: ActiveCondition[];
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -88,7 +110,11 @@ export type ConsequenceType =
   | { type: 'income'; value: IncomeLevel }
   | { type: 'money'; delta: number }
   | { type: 'job'; title: string | null; salary: number }
-  | { type: 'salary'; delta: number };
+  | { type: 'salary'; delta: number }
+  | { type: 'asset_add'; asset: OwnedAsset }
+  | { type: 'asset_remove'; instanceId: string }
+  | { type: 'condition_add'; condition: ActiveCondition }
+  | { type: 'condition_remove'; id: string };
 
 // ─── Shared Eligibility ────────────────────────────────────────────────────
 // Used to gate both events and activities (and individual activity outcomes).
@@ -145,6 +171,7 @@ export interface GameState {
   tapSpeed: 1 | 2 | 4; // years per tap
   // activityId (or `activityId:targetId`) -> age last performed, for cooldowns
   activityLog: Record<string, number>;
+  generation: number; // 1 for the founder; increments each time you continue as an heir
 }
 
 // ─── New Game Config ───────────────────────────────────────────────────────
