@@ -65,8 +65,13 @@ lifespan/
 │
 ├── content/                The soul of the game
 │   └── events/
-│       ├── childhood.ts    Ages 0–12 (20 events)
-│       └── adolescence.ts  Ages 13–18 (20 events)
+│       ├── childhood.ts        Ages 0–12
+│       ├── adolescence.ts      Ages 13–18
+│       ├── earlyAdulthood.ts   Ages 19–29
+│       ├── adulthood.ts        Ages 30–39
+│       ├── middleAge.ts        Ages 40–54
+│       ├── laterLife.ts        Ages 55–69
+│       └── elderYears.ts       Ages 70–89
 │
 └── store/
     └── gameStore.ts        Game state + localStorage saves
@@ -109,10 +114,14 @@ Then add it to `content/index.ts` if you create a new file.
 
 ## Current State
 
-- Ages 0–18 fully playable (~40 events)
+- Full lifespan playable, ages 0–90 (~90 events across seven life stages)
 - 70/30 consequence/chaos engine running
-- All choices affect invisible character state
+- Health-based mortality — lives can end early; poor health raises the risk
+- Long-arc payoffs: marriage, children, career, loss, reconciliation and legacy
+- Death screen epitaph reflects the life actually lived
+- All choices affect invisible character state (wounds, values, flags)
 - Saves to localStorage automatically
 - Mobile-responsive (works on phone browser)
 
-Next: events for ages 18–90, relationship system, career system, generational play.
+Next: relationship deepening (named partners/children with their own arcs),
+career specialization trees, and generational play (continue as your child).

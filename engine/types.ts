@@ -23,7 +23,8 @@ export type ValueType =
   | 'freedom'
   | 'justice'
   | 'honesty'
-  | 'meaning';
+  | 'meaning'
+  | 'legacy';
 
 export type DesireType =
   | 'love'
