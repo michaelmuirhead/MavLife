@@ -6,6 +6,7 @@ import { ALL_ACTIVITIES } from '../content/activities';
 import { isActivityAvailable } from '../engine/activities/resolve';
 import type { Activity, ActivityCategory } from '../engine/activities/types';
 import type { Character, Relationship } from '../engine/types';
+import { MenuShell } from './Menu';
 
 const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> = {
   mind_body: { label: 'Mind & Body', emoji: '💪' },
@@ -93,27 +94,11 @@ export default function ActivitiesModal({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-md bg-[#ededed] rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="brick-bg flex items-center justify-between px-4 py-3 rounded-t-2xl border-b-2 border-[#c4c4c4]">
-          <span className="font-black text-lg text-[#1a1a1a]">Activities</span>
-          <span className="text-[#2e8b3d] font-extrabold text-base tabular-nums">
-            ${character.money.toLocaleString()}
-          </span>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white text-[#e8392f] flex items-center justify-center shadow-sm active:scale-95 font-black"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Category tabs */}
+    <MenuShell
+      title="Activities"
+      balance={`$${character.money.toLocaleString()}`}
+      onClose={onClose}
+      subheader={
         <div className="flex gap-1 px-3 py-2 bg-[#e2e2e2] overflow-x-auto">
           {cats.map((cat) => (
             <button
@@ -127,9 +112,10 @@ export default function ActivitiesModal({
             </button>
           ))}
         </div>
-
+      }
+    >
         {/* Activity list */}
-        <div className="overflow-y-auto px-3 py-3 flex flex-col gap-2">
+        <div className="px-3 py-3 flex flex-col gap-2">
           {items.length === 0 && (
             <p className="text-center text-[#888] text-sm py-8 font-bold">
               Nothing here right now.
@@ -201,7 +187,6 @@ export default function ActivitiesModal({
             );
           })}
         </div>
-      </div>
-    </div>
+    </MenuShell>
   );
 }

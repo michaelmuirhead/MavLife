@@ -3,6 +3,7 @@
 import { useGameStore } from '../store/gameStore';
 import { INSTRUMENTS } from '../content/investments/catalog';
 import { portfolioValue, holdingValue } from '../engine/investments/logic';
+import { MenuShell, MenuSection } from './Menu';
 
 function riskLabel(vol: number): { label: string; color: string } {
   if (vol <= 0.03) return { label: 'Safe', color: '#2e8b3d' };
@@ -22,23 +23,10 @@ export default function InvestmentsModal({ onClose }: { onClose: () => void }) {
   const portfolio = portfolioValue(character);
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-md bg-[#ededed] rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="brick-bg flex items-center justify-between px-4 py-3 rounded-t-2xl border-b-2 border-[#c4c4c4]">
-          <span className="font-black text-lg text-[#1a1a1a]">Investments</span>
-          <div className="text-right">
-            <div className="text-[#2e8b3d] font-extrabold text-sm tabular-nums leading-none">
-              ${character.money.toLocaleString()} cash
-            </div>
-            <div className="text-[#9a9a9a] text-[9px] font-extrabold uppercase">
-              Portfolio ${portfolio.toLocaleString()}
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white text-[#e8392f] flex items-center justify-center shadow-sm active:scale-95 font-black" aria-label="Close">✕</button>
-        </div>
-
-        <div className="overflow-y-auto px-3 py-3 flex flex-col gap-2">
-          {INSTRUMENTS.map((def) => {
+    <MenuShell title="Investments" balance={`$${character.money.toLocaleString()}`} onClose={onClose}>
+      <MenuSection label={`Portfolio $${portfolio.toLocaleString()}`} />
+      <div className="px-3 py-3 flex flex-col gap-2">
+        {INSTRUMENTS.map((def) => {
             const held = holdingValue(character, def.id);
             const risk = riskLabel(def.vol);
             const tooYoung = age < def.minAge;
@@ -92,8 +80,7 @@ export default function InvestmentsModal({ onClose }: { onClose: () => void }) {
               </div>
             );
           })}
-        </div>
       </div>
-    </div>
+    </MenuShell>
   );
 }

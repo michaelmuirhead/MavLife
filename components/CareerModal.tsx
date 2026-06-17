@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { ALL_JOBS } from '../content/career/jobs';
 import { jobAvailability, hireChance } from '../engine/career/logic';
 import type { Job } from '../engine/career/types';
+import { MenuShell } from './Menu';
 
 function fieldGroups(): { field: string; jobs: Job[] }[] {
   const order: string[] = [];
@@ -33,27 +34,8 @@ export default function CareerModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-md bg-[#ededed] rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="brick-bg flex items-center justify-between px-4 py-3 rounded-t-2xl border-b-2 border-[#c4c4c4]">
-          <span className="font-black text-lg text-[#1a1a1a]">Career</span>
-          <span className="text-[#2e8b3d] font-extrabold text-base tabular-nums">
-            ${character.money.toLocaleString()}
-          </span>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white text-[#e8392f] flex items-center justify-center shadow-sm active:scale-95 font-black"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="overflow-y-auto px-3 py-3 flex flex-col gap-3">
+    <MenuShell title="Career" balance={`$${character.money.toLocaleString()}`} onClose={onClose}>
+        <div className="px-3 py-3 flex flex-col gap-3">
 
           {/* Current job */}
           {employed && (
@@ -144,7 +126,6 @@ export default function CareerModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-      </div>
-    </div>
+    </MenuShell>
   );
 }
