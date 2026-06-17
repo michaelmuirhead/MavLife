@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import type { Choice, StatType, Character, LifeEvent } from '../engine/types';
+import type { ActivityCategory } from '../engine/activities/types';
+import ActivitiesModal from './ActivitiesModal';
+import CareerModal from './CareerModal';
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
 
@@ -92,7 +95,12 @@ function CharacterCard() {
               {character.name}
             </span>
           </div>
-          <div className="text-[#7a7a7a] text-xs font-bold truncate">🧬 {role}</div>
+          <div className="text-[#7a7a7a] text-xs font-bold truncate flex items-center gap-2">
+            <span>🧬 {role}</span>
+            {character.money > 0 && (
+              <span className="text-[#2e8b3d]">${character.money.toLocaleString()}</span>
+            )}
+          </div>
         </div>
       </div>
       <div className="text-right shrink-0 pl-2">
@@ -128,7 +136,9 @@ function NarrativeFeed({ events }: { events: LifeEvent[] }) {
             <p
               key={`${ev.id}_${i}`}
               className={`text-[15px] leading-relaxed ${
-                ev.isChoice
+                ev.kind === 'activity'
+                  ? 'text-[#1a1a1a] pl-3 border-l-[3px] border-[#46b93a] my-1'
+                  : ev.isChoice
                   ? 'text-[#555] italic pl-3 border-l-[3px] border-[#d8d8d8] my-1'
                   : 'text-[#1a1a1a]'
               }`}
@@ -165,20 +175,53 @@ function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (
   );
 }
 
-// ─── Age Button ─────────────────────────────────────────────────────────────
+// ─── Action Bar (nav shortcuts + Age button) ───────────────────────────────
 
-function AgeButton({ onTap }: { onTap: () => void }) {
+function ActionBar({
+  onTap,
+  onOpenActivities,
+  onOpenCareer,
+}: {
+  onTap: () => void;
+  onOpenActivities: (c: ActivityCategory) => void;
+  onOpenCareer: () => void;
+}) {
   return (
-    <div className="brick-bg flex items-center justify-center py-4 border-t-2 border-[#c4c4c4]">
+    <div className="brick-bg flex items-center justify-between px-5 py-3.5 border-t-2 border-[#c4c4c4]">
+      <div className="flex gap-3">
+        <NavButton emoji="💪" label="Body" onClick={() => onOpenActivities('mind_body')} />
+        <NavButton emoji="🫂" label="Social" onClick={() => onOpenActivities('social')} />
+      </div>
+
       <button
         onClick={onTap}
-        className="btn-3d w-24 h-24 rounded-full bg-[#46b93a] border-[#34972b] text-white flex flex-col items-center justify-center shadow-lg hover:bg-[#4ec441] active:bg-[#3ea832]"
+        className="btn-3d w-[88px] h-[88px] rounded-full bg-[#46b93a] border-[#34972b] text-white flex flex-col items-center justify-center shadow-lg hover:bg-[#4ec441] active:bg-[#3ea832] shrink-0"
         aria-label="Age up one year"
       >
         <span className="text-4xl font-black leading-none -mt-1">+</span>
         <span className="text-sm font-extrabold tracking-wide -mt-0.5">Age</span>
       </button>
+
+      <div className="flex gap-3">
+        <NavButton emoji="💼" label="Career" onClick={onOpenCareer} />
+        <NavButton emoji="💰" label="Money" onClick={() => onOpenActivities('money')} />
+      </div>
     </div>
+  );
+}
+
+function NavButton({ emoji, label, onClick }: { emoji: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
+      aria-label={label}
+    >
+      <span className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-xl">
+        {emoji}
+      </span>
+      <span className="text-[10px] font-extrabold text-[#666]">{label}</span>
+    </button>
   );
 }
 
@@ -187,6 +230,8 @@ function AgeButton({ onTap }: { onTap: () => void }) {
 export default function GameScreen() {
   const { lifeEvents, pendingEvent, tap, makeChoice, goToTitle } = useGameStore();
   const feedRef = useRef<HTMLDivElement>(null);
+  const [activitiesCategory, setActivitiesCategory] = useState<ActivityCategory | null>(null);
+  const [careerOpen, setCareerOpen] = useState(false);
 
   useEffect(() => {
     if (feedRef.current) {
@@ -223,15 +268,30 @@ export default function GameScreen() {
         <NarrativeFeed events={lifeEvents} />
       </div>
 
-      {/* Action zone — choices or Age button */}
+      {/* Action zone — choices, or nav shortcuts + Age button */}
       {hasChoice ? (
         <ChoiceInterface choices={pendingEvent!.choices!} onChoice={makeChoice} />
       ) : (
-        <AgeButton onTap={tap} />
+        <ActionBar
+          onTap={tap}
+          onOpenActivities={setActivitiesCategory}
+          onOpenCareer={() => setCareerOpen(true)}
+        />
       )}
 
       {/* Stats */}
       <StatsPanel />
+
+      {/* Activities modal */}
+      {activitiesCategory && (
+        <ActivitiesModal
+          initialCategory={activitiesCategory}
+          onClose={() => setActivitiesCategory(null)}
+        />
+      )}
+
+      {/* Career modal */}
+      {careerOpen && <CareerModal onClose={() => setCareerOpen(false)} />}
 
     </div>
   );

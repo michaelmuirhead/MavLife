@@ -1,16 +1,13 @@
-import type { Character, GameEvent } from './types';
+import type { Character, GameEvent, EligibilityReq, StatType } from './types';
 import { ALL_EVENTS } from '../content';
 
-// ─── Event Eligibility ─────────────────────────────────────────────────────
+// ─── Shared Requirement Check ──────────────────────────────────────────────
+// One gate for events, activities, and individual activity outcomes.
 
-function isEligible(event: GameEvent, age: number, character: Character, firedIds: Set<string>): boolean {
-  // Don't fire the same event twice
-  if (firedIds.has(event.id)) return false;
-
-  // Age check
-  if (age < event.ageRange[0] || age > event.ageRange[1]) return false;
-
-  const req = event.requires;
+export function meetsRequirements(
+  req: EligibilityReq | undefined,
+  character: Character
+): boolean {
   if (!req) return true;
 
   // Required flags must all be present
@@ -41,7 +38,42 @@ function isEligible(event: GameEvent, age: number, character: Character, firedId
     }
   }
 
+  // Stat thresholds
+  if (req.minStat) {
+    for (const [statKey, minVal] of Object.entries(req.minStat)) {
+      if ((character.stats[statKey as StatType] ?? 0) < (minVal ?? 0)) return false;
+    }
+  }
+  if (req.maxStat) {
+    for (const [statKey, maxVal] of Object.entries(req.maxStat)) {
+      if ((character.stats[statKey as StatType] ?? 0) > (maxVal ?? 100)) return false;
+    }
+  }
+
+  // Money floor
+  if (req.minMoney !== undefined && (character.money ?? 0) < req.minMoney) return false;
+
+  // Must have at least one living relationship of a given type
+  if (req.hasRelationshipType) {
+    const has = Object.values(character.relationships).some(
+      (r) => r.alive && req.hasRelationshipType!.includes(r.type)
+    );
+    if (!has) return false;
+  }
+
   return true;
+}
+
+// ─── Event Eligibility ─────────────────────────────────────────────────────
+
+function isEligible(event: GameEvent, age: number, character: Character, firedIds: Set<string>): boolean {
+  // Don't fire the same event twice
+  if (firedIds.has(event.id)) return false;
+
+  // Age check
+  if (age < event.ageRange[0] || age > event.ageRange[1]) return false;
+
+  return meetsRequirements(event.requires, character);
 }
 
 // ─── Event Selection — 70/30 Engine ───────────────────────────────────────
@@ -78,11 +110,23 @@ export function selectEvent(
 // ─── Text Interpolation ────────────────────────────────────────────────────
 // Replace {name}, {location} etc. in event narrative
 
-export function interpolate(text: string, character: Character): string {
-  return text
+export function interpolate(
+  text: string,
+  character: Character,
+  extra?: Record<string, string>
+): string {
+  let out = text
     .replace(/\{name\}/g, character.name)
     .replace(/\{location\}/g, character.location)
     .replace(/\{mother\}/g, character.relationships['mother']?.name ?? 'your mother')
     .replace(/\{father\}/g, character.relationships['father']?.name ?? 'your father')
     .replace(/\{sibling\}/g, character.relationships['sibling']?.name ?? 'your sibling');
+
+  if (extra) {
+    for (const [token, value] of Object.entries(extra)) {
+      out = out.replace(new RegExp(`\\{${token}\\}`, 'g'), value);
+    }
+  }
+
+  return out;
 }

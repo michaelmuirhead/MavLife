@@ -75,6 +75,22 @@ export function applyConsequences(
         next.income = c.value;
         break;
       }
+
+      case 'money': {
+        next.money = Math.max(0, (next.money ?? 0) + c.delta);
+        break;
+      }
+
+      case 'job': {
+        next.occupation = c.title;
+        next.salary = Math.max(0, c.salary);
+        break;
+      }
+
+      case 'salary': {
+        next.salary = Math.max(0, (next.salary ?? 0) + c.delta);
+        break;
+      }
     }
   }
 

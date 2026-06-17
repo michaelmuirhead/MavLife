@@ -5,6 +5,10 @@ import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice, Character,
 import { createCharacter } from '../engine/character';
 import { applyConsequences } from '../engine/consequences';
 import { selectEvent, interpolate } from '../engine/eventSelector';
+import { getActivity } from '../content/activities';
+import { isActivityAvailable, resolveActivity, cooldownKey } from '../engine/activities/resolve';
+import { getJob } from '../content/career/jobs';
+import { applyToJob, workHarder, askForRaise, quitJob, jobAvailability } from '../engine/career/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -113,6 +117,7 @@ function emptyState(): Omit<GameState, 'phase'> {
     pendingEvent: null,
     firedEventIds: new Set(),
     tapSpeed: 1,
+    activityLog: {},
   };
 }
 
@@ -127,6 +132,13 @@ interface GameStore extends GameState {
   // Core game loop
   tap: () => void;
   makeChoice: (choice: Choice) => void;
+  performActivity: (activityId: string, targetId?: string) => void;
+
+  // Career
+  applyForJob: (jobId: string) => void;
+  workHarder: () => void;
+  askForRaise: () => void;
+  quitJob: () => void;
 
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
@@ -137,7 +149,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 4;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -165,10 +177,13 @@ function isValidSave(s: unknown): s is GameState {
   if (o.version !== SAVE_VERSION) return false;
   if (typeof o.phase !== 'string' || typeof o.age !== 'number') return false;
   if (!Array.isArray(o.lifeEvents)) return false;
+  if (!o.activityLog || typeof o.activityLog !== 'object') return false;
 
   const c = o.character as Record<string, unknown> | null | undefined;
   if (!c || typeof c !== 'object') return false;
   if (typeof c.name !== 'string') return false;
+  if (typeof c.money !== 'number') return false;
+  if (typeof c.salary !== 'number') return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -248,6 +263,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingEvent: null,
       firedEventIds: newFiredIds,
       tapSpeed: 1,
+      activityLog: {},
     };
 
     set(newState);
@@ -263,6 +279,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Apply natural aging to stats each year
     let newCharacter = applyNaturalAging(state.character, newAge, state.tapSpeed);
+
+    // Pay out salary for the year(s) worked
+    if (newCharacter.salary > 0) {
+      newCharacter = {
+        ...newCharacter,
+        money: newCharacter.money + newCharacter.salary * state.tapSpeed,
+      };
+    }
 
     // Hard end of life at 90 — no one outlives it here
     if (newAge >= 90) {
@@ -391,10 +415,115 @@ export const useGameStore = create<GameStore>((set, get) => ({
     saveToStorage(newState);
   },
 
+  performActivity: (activityId: string, targetId?: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+
+    const activity = getActivity(activityId);
+    if (!activity) return;
+
+    // Re-check availability server-side of the UI — the menu greys out
+    // ineligible activities, but never trust that alone.
+    const avail = isActivityAvailable(activity, state.character, state.age, state.activityLog, targetId);
+    if (!avail.ok) return;
+
+    const { narrative, consequences } = resolveActivity(activity, state.character, targetId);
+    const newCharacter = applyConsequences(state.character, consequences);
+
+    const activityEvent = {
+      id: `act_${activityId}_${state.age}_${state.lifeEvents.length}`,
+      age: state.age,
+      text: interpolate(narrative, newCharacter),
+      kind: 'activity' as const,
+    };
+
+    const newState: GameState = {
+      ...state,
+      character: newCharacter,
+      lifeEvents: [...state.lifeEvents, activityEvent],
+      activityLog: {
+        ...state.activityLog,
+        [cooldownKey(activityId, targetId)]: state.age,
+      },
+    };
+    set(newState);
+    saveToStorage(newState);
+  },
+
+  applyForJob: (jobId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const job = getJob(jobId);
+    if (!job) return;
+    if (!jobAvailability(job, state.character, state.age).ok) return;
+
+    const outcome = applyToJob(job, state.character);
+    commitCareerOutcome(set, get, outcome.narrative, outcome.consequences);
+  },
+
+  workHarder: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!state.character.occupation) return;
+    if (state.character.flags['worked_harder_year'] === state.age) return; // once/year
+
+    const outcome = workHarder(state.character);
+    commitCareerOutcome(set, get, outcome.narrative, [
+      ...outcome.consequences,
+      { type: 'flag', key: 'worked_harder_year', value: state.age },
+    ]);
+  },
+
+  askForRaise: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!state.character.occupation) return;
+    if (state.character.flags['raise_asked_year'] === state.age) return; // once/year
+
+    const outcome = askForRaise(state.character);
+    commitCareerOutcome(set, get, outcome.narrative, [
+      ...outcome.consequences,
+      { type: 'flag', key: 'raise_asked_year', value: state.age },
+    ]);
+  },
+
+  quitJob: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!state.character.occupation) return;
+
+    const outcome = quitJob(state.character);
+    commitCareerOutcome(set, get, outcome.narrative, outcome.consequences);
+  },
+
   setTapSpeed: (speed) => {
     set({ tapSpeed: speed });
   },
 }));
+
+// Apply a career action's consequences and append its narrative to the feed.
+function commitCareerOutcome(
+  set: (partial: Partial<GameState>) => void,
+  get: () => GameState,
+  narrative: string,
+  consequences: Parameters<typeof applyConsequences>[1]
+) {
+  const state = get();
+  const newCharacter = applyConsequences(state.character, consequences);
+  const event = {
+    id: `career_${state.age}_${state.lifeEvents.length}`,
+    age: state.age,
+    text: interpolate(narrative, newCharacter),
+    kind: 'activity' as const,
+  };
+  const newState: GameState = {
+    ...state,
+    character: newCharacter,
+    lifeEvents: [...state.lifeEvents, event],
+  };
+  set(newState);
+  saveToStorage(newState);
+}
 
 // ─── Load saved game on init ───────────────────────────────────────────────
 
