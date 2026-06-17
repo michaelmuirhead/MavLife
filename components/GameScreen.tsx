@@ -2,29 +2,37 @@
 
 import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
-import type { Choice, StatType } from '../engine/types';
+import type { Choice, StatType, Character, LifeEvent } from '../engine/types';
 
-// ─── Stat Bar Config ───────────────────────────────────────────────────────
+// ─── Stat Config ───────────────────────────────────────────────────────────
 
-const STAT_ORDER: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
+const STAT_ORDER: StatType[] = ['happiness', 'health', 'smarts', 'looks', 'fitness', 'charisma'];
 
-const STAT_LABEL: Record<StatType, string> = {
-  health:    'HLT',
-  happiness: 'HPY',
-  looks:     'LKS',
-  smarts:    'SMT',
-  fitness:   'FIT',
-  charisma:  'CHR',
+const STAT_META: Record<StatType, { label: string; emoji: string }> = {
+  happiness: { label: 'Happiness', emoji: '😄' },
+  health:    { label: 'Health',    emoji: '❤️' },
+  smarts:    { label: 'Smarts',    emoji: '🧠' },
+  looks:     { label: 'Looks',     emoji: '🔥' },
+  fitness:   { label: 'Fitness',   emoji: '💪' },
+  charisma:  { label: 'Charisma',  emoji: '✨' },
 };
 
-const STAT_COLOR: Record<StatType, string> = {
-  health:    '#f43f5e', // rose
-  happiness: '#fbbf24', // amber
-  looks:     '#c084fc', // purple
-  smarts:    '#38bdf8', // sky
-  fitness:   '#34d399', // emerald
-  charisma:  '#fb923c', // orange
-};
+// Bar color shifts from red (low) to green (high), BitLife-style
+function barColor(value: number): string {
+  if (value >= 60) return '#46b93a';
+  if (value >= 35) return '#f0a830';
+  return '#e8392f';
+}
+
+// ─── Avatar ────────────────────────────────────────────────────────────────
+
+function avatarEmoji(character: Character, age: number): string {
+  const g = character.gender;
+  if (age < 3) return '👶';
+  if (age < 13) return g === 'male' ? '👦' : g === 'female' ? '👧' : '🧒';
+  if (age < 65) return g === 'male' ? '👨' : g === 'female' ? '👩' : '🧑';
+  return g === 'male' ? '👴' : g === 'female' ? '👵' : '🧓';
+}
 
 // ─── Stats Panel ───────────────────────────────────────────────────────────
 
@@ -32,25 +40,24 @@ function StatsPanel() {
   const stats = useGameStore((s) => s.character.stats);
 
   return (
-    <div className="px-5 pt-3 pb-3 grid grid-cols-6 gap-3 border-b border-zinc-900">
+    <div className="bg-[#ededed] border-t border-[#cfcfcf] px-4 py-2.5 grid grid-cols-1 gap-1.5">
       {STAT_ORDER.map((key) => {
         const value = Math.round(stats[key] ?? 0);
         return (
-          <div key={key} className="flex flex-col items-center gap-1">
-            <span className="text-zinc-600 text-[9px] tracking-widest uppercase">
-              {STAT_LABEL[key]}
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-base w-6 text-center leading-none">{STAT_META[key].emoji}</span>
+            <span className="text-[#333] font-extrabold text-[11px] w-[58px] shrink-0">
+              {STAT_META[key].label}
             </span>
-            {/* Bar track */}
-            <div className="w-full h-[3px] bg-zinc-800 rounded-full overflow-hidden">
+            <div className="flex-1 h-3.5 bg-[#d2d2d2] rounded-full overflow-hidden shadow-inner">
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${value}%`,
-                  backgroundColor: STAT_COLOR[key],
-                }}
+                style={{ width: `${value}%`, backgroundColor: barColor(value) }}
               />
             </div>
-            <span className="text-zinc-500 text-[9px] tabular-nums">{value}</span>
+            <span className="text-[#333] font-extrabold text-[11px] w-9 text-right tabular-nums">
+              {value}%
+            </span>
           </div>
         );
       })}
@@ -58,133 +65,173 @@ function StatsPanel() {
   );
 }
 
-// ─── Age Bar ───────────────────────────────────────────────────────────────
+// ─── Character Card ─────────────────────────────────────────────────────────
 
-function AgeBar() {
-  const { age, character } = useGameStore();
+function CharacterCard() {
+  const { character, age } = useGameStore();
 
   const lifeStage =
-    age < 13 ? 'Childhood' :
-    age < 20 ? 'Adolescence' :
-    age < 30 ? 'Early Adulthood' :
-    age < 40 ? 'Adulthood' :
-    age < 55 ? 'Middle Age' :
-    age < 70 ? 'Later Life' : 'Elder Years';
+    age < 1 ? 'Newborn' :
+    age < 13 ? 'Child' :
+    age < 20 ? 'Teenager' :
+    age < 65 ? 'Adult' : 'Senior';
+
+  const role = character.occupation
+    ? character.occupation.charAt(0).toUpperCase() + character.occupation.slice(1)
+    : lifeStage;
 
   return (
-    <div className="sticky top-0 z-10 bg-black border-b border-zinc-800">
-      <div className="px-5 py-4 flex items-baseline justify-between">
-        <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-light text-white tabular-nums">{age}</span>
-          <span className="text-zinc-500 text-sm">{lifeStage}</span>
+    <div className="brick-bg px-4 py-3 flex items-center justify-between border-b-2 border-[#c4c4c4]">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-12 h-12 rounded-xl bg-white shadow-md flex items-center justify-center text-2xl shrink-0">
+          {avatarEmoji(character, age)}
         </div>
-        <span className="text-zinc-600 text-xs tracking-wider">
-          {character.location} · {character.birthYear + age}
-        </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#1f86d8] font-extrabold text-lg leading-tight truncate">
+              {character.name}
+            </span>
+          </div>
+          <div className="text-[#7a7a7a] text-xs font-bold truncate">🧬 {role}</div>
+        </div>
       </div>
-      <StatsPanel />
+      <div className="text-right shrink-0 pl-2">
+        <div className="text-[#2e8b3d] font-extrabold text-base leading-tight">
+          {character.birthYear + age}
+        </div>
+        <div className="text-[#9a9a9a] text-[10px] font-bold uppercase tracking-wide">
+          Year
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Life Event Entry ──────────────────────────────────────────────────────
+// ─── Narrative Feed (grouped by age) ────────────────────────────────────────
 
-function EventEntry({ text, age: eventAge, isChoice }: { text: string; age: number; isChoice?: boolean }) {
+function NarrativeFeed({ events }: { events: LifeEvent[] }) {
+  const groups: { age: number; items: LifeEvent[] }[] = [];
+  for (const ev of events) {
+    const last = groups[groups.length - 1];
+    if (last && last.age === ev.age) last.items.push(ev);
+    else groups.push({ age: ev.age, items: [ev] });
+  }
+
   return (
-    <div className={`px-5 py-3 ${isChoice ? 'border-l-2 border-zinc-600 ml-5' : ''}`}>
-      {!isChoice && (
-        <span className="text-zinc-600 text-xs tabular-nums mr-3">{eventAge}</span>
-      )}
-      <span className={`text-sm leading-relaxed ${isChoice ? 'text-zinc-300 italic' : 'text-zinc-200'}`}>
-        {text}
-      </span>
-    </div>
-  );
-}
-
-// ─── Choice Interface ──────────────────────────────────────────────────────
-
-function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (c: Choice) => void }) {
-  return (
-    <div className="px-5 py-4 flex flex-col gap-2 border-t border-zinc-800 bg-black">
-      <p className="text-zinc-500 text-xs tracking-widest uppercase mb-1">Choose</p>
-      {choices.map((choice, i) => (
-        <button
-          key={i}
-          onClick={() => onChoice(choice)}
-          className="text-left px-4 py-3 border border-zinc-700 text-zinc-200 text-sm leading-relaxed hover:border-zinc-400 hover:text-white active:bg-zinc-900 transition-colors"
-        >
-          {choice.text}
-        </button>
+    <div className="px-4 py-3">
+      {groups.map((group, gi) => (
+        <div key={gi} className={gi > 0 ? 'mt-4' : ''}>
+          <h3 className="text-[#1f86d8] font-extrabold text-[15px] mb-1">
+            Age: {group.age} {group.age === 1 ? 'year' : 'years'}
+          </h3>
+          {group.items.map((ev, i) => (
+            <p
+              key={`${ev.id}_${i}`}
+              className={`text-[15px] leading-relaxed ${
+                ev.isChoice
+                  ? 'text-[#555] italic pl-3 border-l-[3px] border-[#d8d8d8] my-1'
+                  : 'text-[#1a1a1a]'
+              }`}
+            >
+              {ev.text}
+            </p>
+          ))}
+        </div>
       ))}
     </div>
   );
 }
 
-// ─── Tap Button ────────────────────────────────────────────────────────────
+// ─── Choice Interface ───────────────────────────────────────────────────────
 
-function TapButton({ onTap, tapSpeed }: { onTap: () => void; tapSpeed: number }) {
+function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (c: Choice) => void }) {
   return (
-    <button
-      onClick={onTap}
-      className="w-full py-5 bg-zinc-900 text-zinc-400 text-xs tracking-[0.3em] uppercase hover:bg-zinc-800 hover:text-zinc-200 active:bg-zinc-700 transition-colors border-t border-zinc-800"
-    >
-      Tap to continue · {tapSpeed === 1 ? '1 year' : tapSpeed === 2 ? '6 months' : '3 months'} per tap
-    </button>
+    <div className="brick-bg px-4 pt-3 pb-4 border-t-2 border-[#c4c4c4]">
+      <p className="text-[#7a7a7a] text-xs font-extrabold uppercase tracking-widest mb-2 text-center">
+        Make a choice
+      </p>
+      <div className="flex flex-col gap-2.5">
+        {choices.map((choice, i) => (
+          <button
+            key={i}
+            onClick={() => onChoice(choice)}
+            className="btn-3d text-left px-4 py-3 bg-white rounded-xl border-[#cfcfcf] text-[#1a1a1a] font-bold text-sm leading-snug shadow-sm hover:bg-[#f5faff]"
+          >
+            {choice.text}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-// ─── Main Game Screen ──────────────────────────────────────────────────────
+// ─── Age Button ─────────────────────────────────────────────────────────────
+
+function AgeButton({ onTap }: { onTap: () => void }) {
+  return (
+    <div className="brick-bg flex items-center justify-center py-4 border-t-2 border-[#c4c4c4]">
+      <button
+        onClick={onTap}
+        className="btn-3d w-24 h-24 rounded-full bg-[#46b93a] border-[#34972b] text-white flex flex-col items-center justify-center shadow-lg hover:bg-[#4ec441] active:bg-[#3ea832]"
+        aria-label="Age up one year"
+      >
+        <span className="text-4xl font-black leading-none -mt-1">+</span>
+        <span className="text-sm font-extrabold tracking-wide -mt-0.5">Age</span>
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Game Screen ───────────────────────────────────────────────────────
 
 export default function GameScreen() {
-  const { lifeEvents, pendingEvent, tap, makeChoice, tapSpeed, goToTitle } = useGameStore();
+  const { lifeEvents, pendingEvent, tap, makeChoice, goToTitle } = useGameStore();
   const feedRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new events
   useEffect(() => {
     if (feedRef.current) {
       feedRef.current.scrollTop = feedRef.current.scrollHeight;
     }
   }, [lifeEvents]);
 
+  const hasChoice = Boolean(pendingEvent && pendingEvent.choices);
+
   return (
-    <div className="flex flex-col h-screen bg-black max-w-lg mx-auto">
+    <div className="flex flex-col h-screen bg-[#e2e2e2] max-w-md mx-auto shadow-2xl">
 
-      {/* Top bar — age + stats */}
-      <AgeBar />
-
-      {/* Menu bar */}
-      <div className="flex justify-end px-5 py-2 border-b border-zinc-900">
+      {/* Red header */}
+      <header className="bg-[#e8392f] flex items-center justify-between px-3 py-2.5 shadow-md z-20">
         <button
           onClick={goToTitle}
-          className="text-zinc-700 text-xs hover:text-zinc-500 transition-colors tracking-wider"
+          className="w-9 h-9 rounded-full bg-white/95 text-[#e8392f] flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+          aria-label="Menu"
         >
-          Quit
+          <span className="text-lg font-black leading-none">≡</span>
         </button>
-      </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xl">🌱</span>
+          <span className="text-white font-black text-2xl italic tracking-tight">Lifespan</span>
+        </div>
+        <div className="w-9 h-9" />
+      </header>
+
+      {/* Character card */}
+      <CharacterCard />
 
       {/* Narrative feed */}
-      <div ref={feedRef} className="flex-1 overflow-y-auto py-2 scroll-smooth">
-        {lifeEvents.map((event, i) => (
-          <EventEntry
-            key={`${event.id}_${i}`}
-            text={event.text}
-            age={event.age}
-            isChoice={event.isChoice}
-          />
-        ))}
-
-        {pendingEvent && pendingEvent.choices && (
-          <div className="mt-2" />
-        )}
+      <div ref={feedRef} className="flex-1 overflow-y-auto bg-white">
+        <NarrativeFeed events={lifeEvents} />
       </div>
 
-      {/* Bottom — choices or tap button */}
-      {pendingEvent && pendingEvent.choices ? (
-        <ChoiceInterface choices={pendingEvent.choices} onChoice={makeChoice} />
+      {/* Action zone — choices or Age button */}
+      {hasChoice ? (
+        <ChoiceInterface choices={pendingEvent!.choices!} onChoice={makeChoice} />
       ) : (
-        <TapButton onTap={tap} tapSpeed={tapSpeed} />
+        <AgeButton onTap={tap} />
       )}
+
+      {/* Stats */}
+      <StatsPanel />
 
     </div>
   );
