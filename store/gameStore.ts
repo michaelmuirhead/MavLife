@@ -11,6 +11,10 @@ import { getJob } from '../content/career/jobs';
 import { applyToJob, workHarder, askForRaise, quitJob, jobAvailability } from '../engine/career/logic';
 import { getAssetDef } from '../content/assets/catalog';
 import { buyAvailability, makeOwnedAsset, resaleValue, settleAssetYear } from '../engine/assets/logic';
+import {
+  findLove, propose, haveChild,
+  canFindLove, canPropose, canHaveChild,
+} from '../engine/relationships/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -145,6 +149,11 @@ interface GameStore extends GameState {
   // Assets
   buyAsset: (defId: string) => void;
   sellAsset: (instanceId: string) => void;
+
+  // Relationships
+  findLove: () => void;
+  propose: () => void;
+  haveChild: () => void;
 
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
@@ -552,6 +561,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
         { type: 'asset_remove', instanceId },
       ]
     );
+  },
+
+  findLove: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!canFindLove(state.character, state.age).ok) return;
+    const outcome = findLove(state.character, state.age);
+    commitOutcome(set, get, 'love', outcome.narrative, outcome.consequences);
+  },
+
+  propose: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!canPropose(state.character, state.age).ok) return;
+    const outcome = propose(state.character);
+    commitOutcome(set, get, 'love', outcome.narrative, outcome.consequences);
+  },
+
+  haveChild: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    if (!canHaveChild(state.character, state.age).ok) return;
+    if (state.character.flags['tried_child_year'] === state.age) return; // once/year
+    const outcome = haveChild(state.character, state.age);
+    commitOutcome(set, get, 'family', outcome.narrative, [
+      ...outcome.consequences,
+      { type: 'flag', key: 'tried_child_year', value: state.age },
+    ]);
   },
 
   setTapSpeed: (speed) => {

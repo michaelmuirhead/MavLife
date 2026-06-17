@@ -6,13 +6,15 @@ import type { Choice, StatType, Character, LifeEvent } from '../engine/types';
 import ActivitiesModal from './ActivitiesModal';
 import CareerModal from './CareerModal';
 import AssetsModal from './AssetsModal';
+import RelationshipsModal from './RelationshipsModal';
 
-type ModalKey = 'activities' | 'career' | 'assets';
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships';
 
 const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
-  { key: 'activities', emoji: '💪', label: 'Activities' },
-  { key: 'career',     emoji: '💼', label: 'Career' },
-  { key: 'assets',     emoji: '🏠', label: 'Assets' },
+  { key: 'relationships', emoji: '🫂', label: 'Relations' },
+  { key: 'activities',    emoji: '💪', label: 'Activities' },
+  { key: 'career',        emoji: '💼', label: 'Career' },
+  { key: 'assets',        emoji: '🏠', label: 'Assets' },
 ];
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
@@ -272,6 +274,7 @@ export default function GameScreen() {
       {openModal === 'activities' && <ActivitiesModal onClose={() => setOpenModal(null)} />}
       {openModal === 'career' && <CareerModal onClose={() => setOpenModal(null)} />}
       {openModal === 'assets' && <AssetsModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'relationships' && <RelationshipsModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

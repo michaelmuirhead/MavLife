@@ -54,7 +54,7 @@ export interface OwnedAsset {
 export interface Relationship {
   id: string;
   name: string;
-  type: 'mother' | 'father' | 'sibling' | 'friend' | 'romantic' | 'rival' | 'mentor' | 'colleague';
+  type: 'mother' | 'father' | 'sibling' | 'friend' | 'romantic' | 'rival' | 'mentor' | 'colleague' | 'child';
   closeness: number; // -5 to 5
   alive: boolean;
   flags: string[];
