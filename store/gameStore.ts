@@ -767,3 +767,9 @@ export function loadSavedGame() {
     useGameStore.setState(saved);
   }
 }
+
+// Dev-only: expose the store to the balance-simulation harness. Tree-shaken /
+// guarded out of production builds.
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as unknown as { __game?: typeof useGameStore }).__game = useGameStore;
+}
