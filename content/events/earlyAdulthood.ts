@@ -238,7 +238,9 @@ export const EARLY_ADULTHOOD_EVENTS: GameEvent[] = [
     id: 'first_real_job',
     ageRange: [22, 26],
     weight: 'consequence',
-    requires: { notFlags: ['has_career_job'] },
+    // Skip for anyone who already took an explicit career job — that system
+    // owns their occupation and salary.
+    requires: { notFlags: ['has_career_job', 'real_job'] },
     narrative: 'You got the first job that felt like the beginning of something rather than a placeholder. A title with a future attached. A badge, a desk or a route or a station of your own. You were, suddenly and strangely, a professional.',
     choices: [
       {
@@ -247,10 +249,11 @@ export const EARLY_ADULTHOOD_EVENTS: GameEvent[] = [
           narrative: 'You outworked everyone. First in, last out, the one who said yes. It got you noticed and it cost you evenings. You were building a reputation and a habit at the same time. One of them would serve you. The other you\'d have to unlearn.',
           consequences: [
             { type: 'flag', key: 'has_career_job', value: true },
+            { type: 'flag', key: 'employed', value: true },
             { type: 'flag', key: 'workaholic_tendency', value: true },
             { type: 'value', key: 'ambition', delta: 2 },
             { type: 'income', value: 'medium' },
-            { type: 'occupation', value: 'rising professional' },
+            { type: 'job', title: 'rising professional', salary: 42000 },
           ],
         },
       },
@@ -260,10 +263,11 @@ export const EARLY_ADULTHOOD_EVENTS: GameEvent[] = [
           narrative: 'You did the job well and went home. You watched colleagues burn themselves down for marginal gains and decided you wanted a life with edges that weren\'t all work. It was a quietly radical choice. Time would test it.',
           consequences: [
             { type: 'flag', key: 'has_career_job', value: true },
+            { type: 'flag', key: 'employed', value: true },
             { type: 'flag', key: 'work_life_boundary', value: true },
             { type: 'value', key: 'freedom', delta: 1 },
             { type: 'income', value: 'medium' },
-            { type: 'occupation', value: 'professional' },
+            { type: 'job', title: 'professional', salary: 40000 },
             { type: 'stat', key: 'happiness', delta: 4 },
           ],
         },
@@ -274,11 +278,12 @@ export const EARLY_ADULTHOOD_EVENTS: GameEvent[] = [
           narrative: 'You watched how power actually moved through the place — who got promoted and why, what got rewarded versus what got praised. You played the real game, not the stated one. It worked. It also meant you were always a little bit performing.',
           consequences: [
             { type: 'flag', key: 'has_career_job', value: true },
+            { type: 'flag', key: 'employed', value: true },
             { type: 'flag', key: 'political_operator', value: true },
             { type: 'value', key: 'ambition', delta: 2 },
             { type: 'income', value: 'medium' },
             { type: 'stat', key: 'charisma', delta: 4 },
-            { type: 'occupation', value: 'ambitious professional' },
+            { type: 'job', title: 'ambitious professional', salary: 44000 },
           ],
         },
       },

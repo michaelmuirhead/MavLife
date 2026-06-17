@@ -60,6 +60,9 @@ export function applyToJob(job: Job, character: Character): CareerOutcome {
         { type: 'job', title: job.title, salary: job.baseSalary },
         { type: 'flag', key: 'job_performance', value: 50 },
         { type: 'flag', key: 'employed', value: true },
+        // Marks an explicitly-chosen career job so the legacy narrative
+        // occupation events stop firing and can't clobber this title.
+        { type: 'flag', key: 'real_job', value: true },
         { type: 'stat', key: 'happiness', delta: 5 },
       ],
     };

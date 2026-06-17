@@ -18,9 +18,11 @@ export const LATER_LIFE_EVENTS: GameEvent[] = [
           consequences: [
             { type: 'flag', key: 'retirement_decided', value: true },
             { type: 'flag', key: 'retired', value: true },
+            { type: 'flag', key: 'employed', value: false },
             { type: 'value', key: 'freedom', delta: 2 },
             { type: 'stat', key: 'happiness', delta: 6 },
-            { type: 'occupation', value: 'retired' },
+            // Clears the job and stops the paycheck (was relabel-only before).
+            { type: 'job', title: 'retired', salary: 0 },
           ],
         },
       },

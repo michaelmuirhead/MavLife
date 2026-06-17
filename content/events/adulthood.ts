@@ -258,7 +258,9 @@ export const ADULTHOOD_EVENTS: GameEvent[] = [
     id: 'career_advancement',
     ageRange: [30, 38],
     weight: 'consequence',
-    requires: { flags: ['has_career_job'], notFlags: ['career_peaked', 'career_pivot'] },
+    // Only for the narrative-career track; the explicit career system handles
+    // promotions (raises) for real jobs on its own.
+    requires: { flags: ['has_career_job'], notFlags: ['career_peaked', 'career_pivot', 'real_job'] },
     narrative: 'A chance came at work — a promotion, a bigger role, the next rung. It meant more money and more responsibility and more of your life belonging to the job. Your name was in the running. They wanted an answer.',
     choices: [
       {
@@ -269,7 +271,7 @@ export const ADULTHOOD_EVENTS: GameEvent[] = [
             { type: 'flag', key: 'climbed_career', value: true },
             { type: 'value', key: 'ambition', delta: 2 },
             { type: 'income', value: 'high' },
-            { type: 'occupation', value: 'senior professional' },
+            { type: 'job', title: 'senior professional', salary: 85000 },
             { type: 'stat', key: 'health', delta: -3 },
           ],
         },
