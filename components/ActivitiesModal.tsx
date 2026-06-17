@@ -14,10 +14,11 @@ const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> 
   social:    { label: 'Social',      emoji: '🫂' },
   education: { label: 'Education',    emoji: '🎓' },
   vice:      { label: 'Vice',        emoji: '🎲' },
+  crime:     { label: 'Crime',       emoji: '🕶️' },
 };
 
 // Categories that actually have content, in display order.
-const CATEGORY_ORDER: ActivityCategory[] = ['mind_body', 'social', 'money', 'love', 'education', 'vice'];
+const CATEGORY_ORDER: ActivityCategory[] = ['mind_body', 'social', 'money', 'love', 'education', 'vice', 'crime'];
 
 function activeCategories(): ActivityCategory[] {
   return CATEGORY_ORDER.filter((cat) => ALL_ACTIVITIES.some((a) => a.category === cat));

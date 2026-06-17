@@ -12,7 +12,8 @@ export type ActivityCategory =
   | 'money'
   | 'social'
   | 'education'
-  | 'vice';
+  | 'vice'
+  | 'crime';
 
 export interface ActivityOutcome {
   id: string;

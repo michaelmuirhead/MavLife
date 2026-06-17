@@ -50,12 +50,12 @@ export const ALL_JOBS: Job[] = [
   {
     id: 'teacher', title: 'Teacher', field: 'Public Service',
     baseSalary: 48000, ageRange: [22, 65], difficulty: 0.35,
-    requires: { minStat: { smarts: 58, charisma: 45 } },
+    requires: { minStat: { smarts: 58, charisma: 45 }, notFlags: ['criminal_record'] },
   },
   {
     id: 'nurse', title: 'Nurse', field: 'Medicine',
     baseSalary: 62000, ageRange: [22, 65], difficulty: 0.45,
-    requires: { minStat: { smarts: 62 } },
+    requires: { minStat: { smarts: 62 }, notFlags: ['criminal_record'] },
   },
   {
     id: 'software_dev', title: 'Software Developer', field: 'Tech',
@@ -67,12 +67,12 @@ export const ALL_JOBS: Job[] = [
   {
     id: 'lawyer', title: 'Lawyer', field: 'Law',
     baseSalary: 110000, ageRange: [25, 70], difficulty: 0.6,
-    requires: { flags: ['law_degree'], minStat: { charisma: 50 } },
+    requires: { flags: ['law_degree'], minStat: { charisma: 50 }, notFlags: ['criminal_record'] },
   },
   {
     id: 'doctor', title: 'Doctor', field: 'Medicine',
     baseSalary: 160000, ageRange: [28, 70], difficulty: 0.7,
-    requires: { flags: ['med_degree'] },
+    requires: { flags: ['med_degree'], notFlags: ['criminal_record'] },
   },
 
 ];
