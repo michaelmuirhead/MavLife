@@ -175,6 +175,7 @@ export function createCharacter(config: NewGameConfig): Character {
     salary: 0,
     assets: [],
     conditions: [],
+    investments: [],
   };
 }
 

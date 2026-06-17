@@ -69,5 +69,9 @@ export function settleAssetYear(character: Character, years: number): AssetYear 
 }
 
 export function netWorth(character: Character): number {
-  return character.money + character.assets.reduce((sum, a) => sum + a.value, 0);
+  return (
+    character.money +
+    character.assets.reduce((sum, a) => sum + a.value, 0) +
+    character.investments.reduce((sum, i) => sum + i.value, 0)
+  );
 }

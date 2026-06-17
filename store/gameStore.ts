@@ -23,6 +23,8 @@ import {
   conditionYearlyEffects, rollOnset, rollResolve, rollConditionDeath,
   treatAvailability, treat,
 } from '../engine/health/logic';
+import { getInstrument } from '../content/investments/catalog';
+import { settleInvestmentYear, holdingValue } from '../engine/investments/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -210,6 +212,10 @@ interface GameStore extends GameState {
   // Health
   treatCondition: (conditionId: string) => void;
 
+  // Investments
+  buyInvestment: (defId: string, amount: number) => void;
+  sellInvestment: (defId: string) => void;
+
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
 }
@@ -219,7 +225,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -257,6 +263,7 @@ function isValidSave(s: unknown): s is GameState {
   if (typeof c.salary !== 'number') return false;
   if (!Array.isArray(c.assets)) return false;
   if (!Array.isArray(c.conditions)) return false;
+  if (!Array.isArray(c.investments)) return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -388,6 +395,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           ay.statEffects.map((e) => ({ type: 'stat', key: e.stat as StatType, delta: e.delta }))
         );
       }
+    }
+
+    // Investments drift by a year of market returns
+    if (newCharacter.investments.length > 0) {
+      newCharacter = { ...newCharacter, investments: settleInvestmentYear(newCharacter, state.tapSpeed) };
     }
 
     // Automatic life events that fire before the year's random event (e.g.
@@ -732,6 +744,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!treatAvailability(active, state.character).ok) return;
     const outcome = treat(active, state.character);
     commitOutcome(set, get, 'health', outcome.narrative, outcome.consequences);
+  },
+
+  buyInvestment: (defId: string, amount: number) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const def = getInstrument(defId);
+    if (!def) return;
+    if (state.age < def.minAge) return;
+    if (amount <= 0 || state.character.money < amount) return;
+    commitOutcome(
+      set, get, 'invest',
+      `You put $${amount.toLocaleString()} into ${def.name}. Now it was the market's problem too.`,
+      [{ type: 'investment_buy', defId, name: def.name, amount }]
+    );
+  },
+
+  sellInvestment: (defId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const value = holdingValue(state.character, defId);
+    if (value <= 0) return;
+    const def = getInstrument(defId);
+    commitOutcome(
+      set, get, 'invest',
+      `You cashed out of ${def?.name ?? 'an investment'} for $${Math.round(value).toLocaleString()}.`,
+      [{ type: 'investment_sell', defId }]
+    );
   },
 
   setTapSpeed: (speed) => {

@@ -9,8 +9,9 @@ import AssetsModal from './AssetsModal';
 import RelationshipsModal from './RelationshipsModal';
 import EducationModal from './EducationModal';
 import HealthModal from './HealthModal';
+import InvestmentsModal from './InvestmentsModal';
 
-type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health';
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health' | 'investments';
 
 const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'relationships', emoji: '🫂', label: 'Relations' },
@@ -19,6 +20,7 @@ const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'career',        emoji: '💼', label: 'Career' },
   { key: 'health',        emoji: '❤️', label: 'Health' },
   { key: 'assets',        emoji: '🏠', label: 'Assets' },
+  { key: 'investments',   emoji: '📈', label: 'Invest' },
 ];
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
@@ -286,6 +288,7 @@ export default function GameScreen() {
       {openModal === 'relationships' && <RelationshipsModal onClose={() => setOpenModal(null)} />}
       {openModal === 'education' && <EducationModal onClose={() => setOpenModal(null)} />}
       {openModal === 'health' && <HealthModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'investments' && <InvestmentsModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

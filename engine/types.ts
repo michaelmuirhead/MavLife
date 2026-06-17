@@ -47,6 +47,13 @@ export interface ActiveCondition {
   since: number; // age of onset
 }
 
+// A holding in an investment instrument (definition lives in content/investments).
+export interface Investment {
+  defId: string;
+  name: string;
+  value: number; // current market value; drifts each year by the instrument's return
+}
+
 // An owned instance of an asset (the catalog definition lives in content/assets).
 export interface OwnedAsset {
   instanceId: string;
@@ -95,6 +102,7 @@ export interface Character {
   salary: number; // annual income from current job; 0 if unemployed
   assets: OwnedAsset[];
   conditions: ActiveCondition[];
+  investments: Investment[];
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -114,7 +122,9 @@ export type ConsequenceType =
   | { type: 'asset_add'; asset: OwnedAsset }
   | { type: 'asset_remove'; instanceId: string }
   | { type: 'condition_add'; condition: ActiveCondition }
-  | { type: 'condition_remove'; id: string };
+  | { type: 'condition_remove'; id: string }
+  | { type: 'investment_buy'; defId: string; name: string; amount: number }
+  | { type: 'investment_sell'; defId: string };
 
 // ─── Shared Eligibility ────────────────────────────────────────────────────
 // Used to gate both events and activities (and individual activity outcomes).

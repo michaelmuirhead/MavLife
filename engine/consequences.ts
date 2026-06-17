@@ -19,6 +19,7 @@ export function applyConsequences(
     reputation: { ...character.reputation },
     assets: [...character.assets],
     conditions: [...character.conditions],
+    investments: character.investments.map((i) => ({ ...i })),
     relationships: Object.fromEntries(
       Object.entries(character.relationships).map(([k, v]) => [
         k,
@@ -113,6 +114,28 @@ export function applyConsequences(
 
       case 'condition_remove': {
         next.conditions = next.conditions.filter((x) => x.id !== c.id);
+        break;
+      }
+
+      case 'investment_buy': {
+        next.money = Math.max(0, next.money - c.amount);
+        const existing = next.investments.find((i) => i.defId === c.defId);
+        if (existing) {
+          next.investments = next.investments.map((i) =>
+            i.defId === c.defId ? { ...i, value: i.value + c.amount } : i
+          );
+        } else {
+          next.investments = [...next.investments, { defId: c.defId, name: c.name, value: c.amount }];
+        }
+        break;
+      }
+
+      case 'investment_sell': {
+        const holding = next.investments.find((i) => i.defId === c.defId);
+        if (holding) {
+          next.money = next.money + Math.round(holding.value);
+          next.investments = next.investments.filter((i) => i.defId !== c.defId);
+        }
         break;
       }
     }
