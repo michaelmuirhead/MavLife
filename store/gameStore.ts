@@ -9,6 +9,8 @@ import { getActivity } from '../content/activities';
 import { isActivityAvailable, resolveActivity, cooldownKey } from '../engine/activities/resolve';
 import { getJob } from '../content/career/jobs';
 import { applyToJob, workHarder, askForRaise, quitJob, jobAvailability } from '../engine/career/logic';
+import { getAssetDef } from '../content/assets/catalog';
+import { buyAvailability, makeOwnedAsset, resaleValue, settleAssetYear } from '../engine/assets/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -140,6 +142,10 @@ interface GameStore extends GameState {
   askForRaise: () => void;
   quitJob: () => void;
 
+  // Assets
+  buyAsset: (defId: string) => void;
+  sellAsset: (instanceId: string) => void;
+
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
 }
@@ -149,7 +155,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -184,6 +190,7 @@ function isValidSave(s: unknown): s is GameState {
   if (typeof c.name !== 'string') return false;
   if (typeof c.money !== 'number') return false;
   if (typeof c.salary !== 'number') return false;
+  if (!Array.isArray(c.assets)) return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -286,6 +293,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...newCharacter,
         money: newCharacter.money + newCharacter.salary * state.tapSpeed,
       };
+    }
+
+    // Settle assets: upkeep, value drift, and any yearly stat effects
+    if (newCharacter.assets.length > 0) {
+      const ay = settleAssetYear(newCharacter, state.tapSpeed);
+      newCharacter = {
+        ...newCharacter,
+        assets: ay.assets,
+        money: Math.max(0, newCharacter.money - ay.upkeep),
+      };
+      if (ay.statEffects.length > 0) {
+        newCharacter = applyConsequences(
+          newCharacter,
+          ay.statEffects.map((e) => ({ type: 'stat', key: e.stat as StatType, delta: e.delta }))
+        );
+      }
     }
 
     // Hard end of life at 90 — no one outlives it here
@@ -458,7 +481,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!jobAvailability(job, state.character, state.age).ok) return;
 
     const outcome = applyToJob(job, state.character);
-    commitCareerOutcome(set, get, outcome.narrative, outcome.consequences);
+    commitOutcome(set, get, 'career', outcome.narrative, outcome.consequences);
   },
 
   workHarder: () => {
@@ -468,7 +491,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.character.flags['worked_harder_year'] === state.age) return; // once/year
 
     const outcome = workHarder(state.character);
-    commitCareerOutcome(set, get, outcome.narrative, [
+    commitOutcome(set, get, 'career', outcome.narrative, [
       ...outcome.consequences,
       { type: 'flag', key: 'worked_harder_year', value: state.age },
     ]);
@@ -481,7 +504,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.character.flags['raise_asked_year'] === state.age) return; // once/year
 
     const outcome = askForRaise(state.character);
-    commitCareerOutcome(set, get, outcome.narrative, [
+    commitOutcome(set, get, 'career', outcome.narrative, [
       ...outcome.consequences,
       { type: 'flag', key: 'raise_asked_year', value: state.age },
     ]);
@@ -493,7 +516,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state.character.occupation) return;
 
     const outcome = quitJob(state.character);
-    commitCareerOutcome(set, get, outcome.narrative, outcome.consequences);
+    commitOutcome(set, get, 'career', outcome.narrative, outcome.consequences);
+  },
+
+  buyAsset: (defId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const def = getAssetDef(defId);
+    if (!def) return;
+    if (!buyAvailability(def, state.character, state.age).ok) return;
+
+    const owned = makeOwnedAsset(def, state.age);
+    commitOutcome(
+      set, get, 'asset',
+      `You bought ${def.name}. $${def.price.toLocaleString()} lighter, and something to show for it — for better or worse.`,
+      [
+        { type: 'money', delta: -def.price },
+        { type: 'asset_add', asset: owned },
+      ]
+    );
+  },
+
+  sellAsset: (instanceId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const asset = state.character.assets.find((a) => a.instanceId === instanceId);
+    if (!asset) return;
+
+    const cash = resaleValue(asset);
+    commitOutcome(
+      set, get, 'asset',
+      `You sold ${asset.name} for $${cash.toLocaleString()}. The number was lower than you remembered paying. It usually is.`,
+      [
+        { type: 'money', delta: cash },
+        { type: 'asset_remove', instanceId },
+      ]
+    );
   },
 
   setTapSpeed: (speed) => {
@@ -501,17 +559,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 }));
 
-// Apply a career action's consequences and append its narrative to the feed.
-function commitCareerOutcome(
+// Apply a player action's consequences and append its narrative to the feed.
+// Shared by career, asset, relationship and health actions.
+function commitOutcome(
   set: (partial: Partial<GameState>) => void,
   get: () => GameState,
+  prefix: string,
   narrative: string,
   consequences: Parameters<typeof applyConsequences>[1]
 ) {
   const state = get();
   const newCharacter = applyConsequences(state.character, consequences);
   const event = {
-    id: `career_${state.age}_${state.lifeEvents.length}`,
+    id: `${prefix}_${state.age}_${state.lifeEvents.length}`,
     age: state.age,
     text: interpolate(narrative, newCharacter),
     kind: 'activity' as const,
