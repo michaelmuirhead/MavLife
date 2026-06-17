@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice, Character } from '../engine/types';
+import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice, Character, StatType } from '../engine/types';
 import { createCharacter } from '../engine/character';
 import { applyConsequences } from '../engine/consequences';
 import { selectEvent, interpolate } from '../engine/eventSelector';
@@ -135,6 +135,11 @@ interface GameStore extends GameState {
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 const SAVE_KEY = 'lifespan_save';
+// Bump when the save shape changes so old, incompatible saves are discarded
+// rather than restored (restoring a stale shape crashes the UI).
+const SAVE_VERSION = 2;
+
+const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
 function saveToStorage(state: GameState) {
   try {
@@ -142,6 +147,7 @@ function saveToStorage(state: GameState) {
       SAVE_KEY,
       JSON.stringify({
         ...state,
+        version: SAVE_VERSION,
         firedEventIds: Array.from(state.firedEventIds),
       })
     );
@@ -150,14 +156,51 @@ function saveToStorage(state: GameState) {
   }
 }
 
-function loadFromStorage(): Partial<GameState> | null {
+// Validate that a parsed save matches the current schema. A mismatch (an old
+// version, a corrupt blob, or a character missing its stats) must NOT be
+// restored — doing so crashes the render. We discard it and start fresh.
+function isValidSave(s: unknown): s is GameState {
+  if (!s || typeof s !== 'object') return false;
+  const o = s as Record<string, unknown>;
+  if (o.version !== SAVE_VERSION) return false;
+  if (typeof o.phase !== 'string' || typeof o.age !== 'number') return false;
+  if (!Array.isArray(o.lifeEvents)) return false;
+
+  const c = o.character as Record<string, unknown> | null | undefined;
+  if (!c || typeof c !== 'object') return false;
+  if (typeof c.name !== 'string') return false;
+  if (!c.relationships || typeof c.relationships !== 'object') return false;
+  if (!c.flags || typeof c.flags !== 'object') return false;
+
+  const stats = c.stats as Record<string, unknown> | null | undefined;
+  if (!stats || typeof stats !== 'object') return false;
+  for (const k of STAT_KEYS) {
+    if (typeof stats[k] !== 'number') return false;
+  }
+  return true;
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function loadFromStorage(): GameState | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    if (!isValidSave(parsed)) {
+      clearStorage(); // drop incompatible/corrupt saves
+      return null;
+    }
     parsed.firedEventIds = new Set(parsed.firedEventIds ?? []);
-    return parsed;
+    return parsed as GameState;
   } catch {
+    clearStorage();
     return null;
   }
 }
@@ -358,6 +401,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 export function loadSavedGame() {
   const saved = loadFromStorage();
   if (saved && saved.phase === 'playing') {
-    useGameStore.setState(saved as GameState);
+    useGameStore.setState(saved);
   }
 }
