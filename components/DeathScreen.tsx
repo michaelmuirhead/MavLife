@@ -2,6 +2,30 @@
 
 import { useGameStore } from '../store/gameStore';
 import type { Character } from '../engine/types';
+import { netWorth } from '../engine/assets/logic';
+
+const DEGREE_RIBBONS: { flag: string; label: string }[] = [
+  { flag: 'med_degree', label: 'MD' },
+  { flag: 'law_degree', label: 'JD' },
+  { flag: 'grad_degree', label: 'Grad' },
+  { flag: 'college_degree', label: 'BA' },
+  { flag: 'associate_degree', label: 'AA' },
+];
+
+function ribbons(character: Character): string[] {
+  const out: string[] = [];
+  const worth = netWorth(character);
+  if (character.occupation) out.push(`💼 ${character.occupation}`);
+  const degree = DEGREE_RIBBONS.find((d) => character.flags[d.flag]);
+  if (degree) out.push(`🎓 ${degree.label}`);
+  if (worth >= 1000) out.push(`💰 $${worth.toLocaleString()} net worth`);
+  const kids = Object.values(character.relationships).filter((r) => r.type === 'child').length;
+  if (kids > 0) out.push(`🧒 ${kids} ${kids === 1 ? 'child' : 'children'}`);
+  if (character.flags['married']) out.push('💍 Married');
+  if (character.assets.length > 0) out.push(`🏠 ${character.assets.length} ${character.assets.length === 1 ? 'asset' : 'assets'}`);
+  if (character.flags['criminal_record']) out.push('🕶️ Criminal record');
+  return out;
+}
 
 export default function DeathScreen() {
   const { character, age, lifeEvents, generation, goToTitle, goToNewGame, continueAsHeir } = useGameStore();
@@ -37,6 +61,17 @@ export default function DeathScreen() {
             {getEpitaph(character, yearsLived)}
           </p>
         </div>
+
+        {/* Ribbons — what the life amounted to */}
+        {ribbons(character).length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {ribbons(character).map((r) => (
+              <span key={r} className="text-[11px] font-extrabold bg-white text-[#555] rounded-full px-2.5 py-1 shadow-sm border border-[#e0e0e0]">
+                {r}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Life stats */}
         <div className="flex justify-around bg-white rounded-2xl shadow-md py-5 border border-[#e0e0e0]">
