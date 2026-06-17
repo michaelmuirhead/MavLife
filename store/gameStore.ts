@@ -19,6 +19,10 @@ import {
 import { randomGender } from '../content/names';
 import { getProgram } from '../content/education';
 import { enrollAvailability, enroll, graduate, dropOut, enrolledProgram, gradAge } from '../engine/education/logic';
+import {
+  conditionYearlyEffects, rollOnset, rollResolve, rollConditionDeath,
+  treatAvailability, treat,
+} from '../engine/health/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -203,6 +207,9 @@ interface GameStore extends GameState {
   enroll: (programId: string) => void;
   dropOut: () => void;
 
+  // Health
+  treatCondition: (conditionId: string) => void;
+
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
 }
@@ -212,7 +219,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -249,6 +256,7 @@ function isValidSave(s: unknown): s is GameState {
   if (typeof c.money !== 'number') return false;
   if (typeof c.salary !== 'number') return false;
   if (!Array.isArray(c.assets)) return false;
+  if (!Array.isArray(c.conditions)) return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -392,6 +400,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
     }
 
+    // Health: existing conditions drain stats; new ones may onset; mild ones
+    // may clear. (Mortality from conditions is rolled below, after aging.)
+    if (newCharacter.conditions.length > 0) {
+      newCharacter = applyConsequences(newCharacter, conditionYearlyEffects(newCharacter, state.tapSpeed));
+    }
+    const onset = rollOnset(newCharacter, newAge, state.tapSpeed);
+    if (onset) {
+      newCharacter = applyConsequences(newCharacter, [{ type: 'condition_add', condition: onset }]);
+      preEvents.push({
+        id: `onset_${onset.id}_${newAge}`,
+        age: newAge,
+        text: `A diagnosis: ${onset.name}. The word landed differently than you'd have guessed — heavier, or lighter, but never neutral.`,
+        kind: 'event',
+      });
+    }
+    const resolved = rollResolve(newCharacter);
+    if (resolved) {
+      newCharacter = applyConsequences(newCharacter, [{ type: 'condition_remove', id: resolved.id }]);
+      preEvents.push({
+        id: `resolve_${resolved.id}_${newAge}`,
+        age: newAge,
+        text: `${resolved.name} eased and then was gone, the way some hard things quietly are, given time.`,
+        kind: 'event',
+      });
+    }
+
     // Hard end of life at 90 — no one outlives it here
     if (newAge >= 90) {
       const deathEvent = {
@@ -412,8 +446,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // Mortality check — lives can end early from age and poor health
-    const cause = rollMortality(newCharacter, newAge, state.tapSpeed);
+    // Mortality check — lives can end early from age, poor health, or a
+    // serious condition's complications
+    const cause = rollMortality(newCharacter, newAge, state.tapSpeed)
+      ?? rollConditionDeath(newCharacter, state.tapSpeed);
     if (cause) {
       const deathEvent = {
         id: 'death',
@@ -680,6 +716,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!program) return;
     const outcome = dropOut(program);
     commitOutcome(set, get, 'edu', outcome.narrative, outcome.consequences);
+  },
+
+  treatCondition: (conditionId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const active = state.character.conditions.find((c) => c.id === conditionId);
+    if (!active) return;
+    if (!treatAvailability(active, state.character).ok) return;
+    const outcome = treat(active, state.character);
+    commitOutcome(set, get, 'health', outcome.narrative, outcome.consequences);
   },
 
   setTapSpeed: (speed) => {

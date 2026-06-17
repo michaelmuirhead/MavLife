@@ -8,14 +8,16 @@ import CareerModal from './CareerModal';
 import AssetsModal from './AssetsModal';
 import RelationshipsModal from './RelationshipsModal';
 import EducationModal from './EducationModal';
+import HealthModal from './HealthModal';
 
-type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education';
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health';
 
 const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'relationships', emoji: '🫂', label: 'Relations' },
   { key: 'activities',    emoji: '💪', label: 'Activities' },
   { key: 'education',     emoji: '🎓', label: 'School' },
   { key: 'career',        emoji: '💼', label: 'Career' },
+  { key: 'health',        emoji: '❤️', label: 'Health' },
   { key: 'assets',        emoji: '🏠', label: 'Assets' },
 ];
 
@@ -283,6 +285,7 @@ export default function GameScreen() {
       {openModal === 'assets' && <AssetsModal onClose={() => setOpenModal(null)} />}
       {openModal === 'relationships' && <RelationshipsModal onClose={() => setOpenModal(null)} />}
       {openModal === 'education' && <EducationModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'health' && <HealthModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

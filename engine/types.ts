@@ -40,6 +40,13 @@ export type IncomeLevel = 'none' | 'low' | 'medium' | 'high' | 'wealthy';
 
 export type AssetCategory = 'home' | 'vehicle' | 'pet' | 'luxury';
 
+// An active health condition (the static definition lives in content/health).
+export interface ActiveCondition {
+  id: string;
+  name: string;
+  since: number; // age of onset
+}
+
 // An owned instance of an asset (the catalog definition lives in content/assets).
 export interface OwnedAsset {
   instanceId: string;
@@ -87,6 +94,7 @@ export interface Character {
   money: number; // bank balance; clamped at 0, never negative for now
   salary: number; // annual income from current job; 0 if unemployed
   assets: OwnedAsset[];
+  conditions: ActiveCondition[];
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -104,7 +112,9 @@ export type ConsequenceType =
   | { type: 'job'; title: string | null; salary: number }
   | { type: 'salary'; delta: number }
   | { type: 'asset_add'; asset: OwnedAsset }
-  | { type: 'asset_remove'; instanceId: string };
+  | { type: 'asset_remove'; instanceId: string }
+  | { type: 'condition_add'; condition: ActiveCondition }
+  | { type: 'condition_remove'; id: string };
 
 // ─── Shared Eligibility ────────────────────────────────────────────────────
 // Used to gate both events and activities (and individual activity outcomes).
