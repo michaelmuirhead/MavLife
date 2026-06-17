@@ -5,6 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import type { Choice, StatType, Character, LifeEvent } from '../engine/types';
 import type { ActivityCategory } from '../engine/activities/types';
 import ActivitiesModal from './ActivitiesModal';
+import CareerModal from './CareerModal';
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
 
@@ -176,19 +177,20 @@ function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (
 
 // ─── Action Bar (nav shortcuts + Age button) ───────────────────────────────
 
-const NAV_ITEMS: { category: ActivityCategory; emoji: string; label: string }[] = [
-  { category: 'mind_body', emoji: '💪', label: 'Body' },
-  { category: 'social',    emoji: '🫂', label: 'Social' },
-  { category: 'money',     emoji: '💰', label: 'Money' },
-];
-
-function ActionBar({ onTap, onOpen }: { onTap: () => void; onOpen: (c: ActivityCategory) => void }) {
+function ActionBar({
+  onTap,
+  onOpenActivities,
+  onOpenCareer,
+}: {
+  onTap: () => void;
+  onOpenActivities: (c: ActivityCategory) => void;
+  onOpenCareer: () => void;
+}) {
   return (
     <div className="brick-bg flex items-center justify-between px-5 py-3.5 border-t-2 border-[#c4c4c4]">
       <div className="flex gap-3">
-        {NAV_ITEMS.slice(0, 2).map((item) => (
-          <NavButton key={item.category} item={item} onOpen={onOpen} />
-        ))}
+        <NavButton emoji="💪" label="Body" onClick={() => onOpenActivities('mind_body')} />
+        <NavButton emoji="🫂" label="Social" onClick={() => onOpenActivities('social')} />
       </div>
 
       <button
@@ -201,32 +203,24 @@ function ActionBar({ onTap, onOpen }: { onTap: () => void; onOpen: (c: ActivityC
       </button>
 
       <div className="flex gap-3">
-        {NAV_ITEMS.slice(2).map((item) => (
-          <NavButton key={item.category} item={item} onOpen={onOpen} />
-        ))}
-        <NavButton item={{ category: 'mind_body', emoji: '⋯', label: 'More' }} onOpen={onOpen} />
+        <NavButton emoji="💼" label="Career" onClick={onOpenCareer} />
+        <NavButton emoji="💰" label="Money" onClick={() => onOpenActivities('money')} />
       </div>
     </div>
   );
 }
 
-function NavButton({
-  item,
-  onOpen,
-}: {
-  item: { category: ActivityCategory; emoji: string; label: string };
-  onOpen: (c: ActivityCategory) => void;
-}) {
+function NavButton({ emoji, label, onClick }: { emoji: string; label: string; onClick: () => void }) {
   return (
     <button
-      onClick={() => onOpen(item.category)}
+      onClick={onClick}
       className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
-      aria-label={item.label}
+      aria-label={label}
     >
       <span className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-xl">
-        {item.emoji}
+        {emoji}
       </span>
-      <span className="text-[10px] font-extrabold text-[#666]">{item.label}</span>
+      <span className="text-[10px] font-extrabold text-[#666]">{label}</span>
     </button>
   );
 }
@@ -237,6 +231,7 @@ export default function GameScreen() {
   const { lifeEvents, pendingEvent, tap, makeChoice, goToTitle } = useGameStore();
   const feedRef = useRef<HTMLDivElement>(null);
   const [activitiesCategory, setActivitiesCategory] = useState<ActivityCategory | null>(null);
+  const [careerOpen, setCareerOpen] = useState(false);
 
   useEffect(() => {
     if (feedRef.current) {
@@ -277,7 +272,11 @@ export default function GameScreen() {
       {hasChoice ? (
         <ChoiceInterface choices={pendingEvent!.choices!} onChoice={makeChoice} />
       ) : (
-        <ActionBar onTap={tap} onOpen={setActivitiesCategory} />
+        <ActionBar
+          onTap={tap}
+          onOpenActivities={setActivitiesCategory}
+          onOpenCareer={() => setCareerOpen(true)}
+        />
       )}
 
       {/* Stats */}
@@ -290,6 +289,9 @@ export default function GameScreen() {
           onClose={() => setActivitiesCategory(null)}
         />
       )}
+
+      {/* Career modal */}
+      {careerOpen && <CareerModal onClose={() => setCareerOpen(false)} />}
 
     </div>
   );

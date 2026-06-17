@@ -72,6 +72,7 @@ export interface Character {
   occupation: string | null;
   income: IncomeLevel;
   money: number; // bank balance; clamped at 0, never negative for now
+  salary: number; // annual income from current job; 0 if unemployed
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -85,7 +86,9 @@ export type ConsequenceType =
   | { type: 'relationship_add'; relationship: Relationship }
   | { type: 'occupation'; value: string }
   | { type: 'income'; value: IncomeLevel }
-  | { type: 'money'; delta: number };
+  | { type: 'money'; delta: number }
+  | { type: 'job'; title: string | null; salary: number }
+  | { type: 'salary'; delta: number };
 
 // ─── Shared Eligibility ────────────────────────────────────────────────────
 // Used to gate both events and activities (and individual activity outcomes).
