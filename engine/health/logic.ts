@@ -38,8 +38,8 @@ export function conditionYearlyEffects(character: Character, years: number): Con
 // ─── Onset ────────────────────────────────────────────────────────────────────
 
 export function rollOnset(character: Character, age: number, years: number): ActiveCondition | null {
-  const base = age < 30 ? 0.03 : age < 50 ? 0.06 : age < 70 ? 0.1 : 0.15;
-  if (Math.random() > Math.min(0.6, base * years)) return null;
+  const base = age < 30 ? 0.02 : age < 50 ? 0.04 : age < 70 ? 0.06 : 0.09;
+  if (Math.random() > Math.min(0.5, base * years)) return null;
 
   const eligible = CONDITIONS
     .filter((d) => age >= d.minAge && !hasCondition(character, d.id))

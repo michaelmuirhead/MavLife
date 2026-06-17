@@ -33,14 +33,14 @@ export const CONDITIONS: ConditionDef[] = [
 
   // ─── Mental health ────────────────────────────────────────────────────────
   {
-    id: 'depression', name: 'Depression', category: 'mental', minAge: 12, onsetWeight: 16,
-    yearly: [{ stat: 'happiness', delta: -6 }, { stat: 'health', delta: -1 }],
-    treatCost: 1200, cureChance: 0.5, resolveChance: 0.1,
+    id: 'depression', name: 'Depression', category: 'mental', minAge: 12, onsetWeight: 9,
+    yearly: [{ stat: 'happiness', delta: -5 }, { stat: 'health', delta: -1 }],
+    treatCost: 1200, cureChance: 0.5, resolveChance: 0.12,
   },
   {
-    id: 'anxiety', name: 'an Anxiety Disorder', category: 'mental', minAge: 12, onsetWeight: 14,
+    id: 'anxiety', name: 'an Anxiety Disorder', category: 'mental', minAge: 12, onsetWeight: 9,
     yearly: [{ stat: 'happiness', delta: -4 }],
-    treatCost: 1000, cureChance: 0.5, resolveChance: 0.15,
+    treatCost: 1000, cureChance: 0.5, resolveChance: 0.18,
   },
 
   // ─── Addiction (needs a vice flag) ────────────────────────────────────────
@@ -53,19 +53,19 @@ export const CONDITIONS: ConditionDef[] = [
 
   // ─── Chronic / age-related (serious) ──────────────────────────────────────
   {
-    id: 'diabetes', name: 'Type 2 Diabetes', category: 'chronic', minAge: 35, onsetWeight: 14,
+    id: 'diabetes', name: 'Type 2 Diabetes', category: 'chronic', minAge: 35, onsetWeight: 9,
     yearly: [{ stat: 'health', delta: -3 }],
-    fatalChance: 0.01, treatCost: 2500, cureChance: 0.25, resolveChance: 0,
+    fatalChance: 0.008, treatCost: 2500, cureChance: 0.25, resolveChance: 0,
   },
   {
-    id: 'heart_disease', name: 'Heart Disease', category: 'chronic', minAge: 45, onsetWeight: 12,
-    yearly: [{ stat: 'health', delta: -5 }, { stat: 'fitness', delta: -3 }],
-    fatalChance: 0.04, treatCost: 9000, cureChance: 0.3, resolveChance: 0,
+    id: 'heart_disease', name: 'Heart Disease', category: 'chronic', minAge: 45, onsetWeight: 8,
+    yearly: [{ stat: 'health', delta: -4 }, { stat: 'fitness', delta: -3 }],
+    fatalChance: 0.03, treatCost: 9000, cureChance: 0.3, resolveChance: 0,
   },
   {
-    id: 'cancer', name: 'Cancer', category: 'chronic', minAge: 30, onsetWeight: 10,
-    yearly: [{ stat: 'health', delta: -8 }, { stat: 'fitness', delta: -4 }],
-    fatalChance: 0.12, treatCost: 25000, cureChance: 0.4, resolveChance: 0,
+    id: 'cancer', name: 'Cancer', category: 'chronic', minAge: 30, onsetWeight: 4,
+    yearly: [{ stat: 'health', delta: -6 }, { stat: 'fitness', delta: -4 }],
+    fatalChance: 0.08, treatCost: 25000, cureChance: 0.4, resolveChance: 0,
   },
 ];
 
