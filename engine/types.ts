@@ -38,7 +38,7 @@ export type FamilyClass = 'poor' | 'working' | 'middle' | 'upper';
 export type FamilyStability = 'volatile' | 'struggling' | 'stable' | 'strong';
 export type IncomeLevel = 'none' | 'low' | 'medium' | 'high' | 'wealthy';
 
-export type AssetCategory = 'home' | 'vehicle' | 'pet' | 'luxury';
+export type AssetCategory = 'home' | 'vehicle' | 'pet' | 'luxury' | 'collectible';
 
 // An active health condition (the static definition lives in content/health).
 export interface ActiveCondition {

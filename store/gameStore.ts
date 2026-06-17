@@ -145,11 +145,14 @@ function emptyState(): Omit<GameState, 'phase'> {
 // continuing as an heir (which injects inherited money and a higher generation).
 function freshPlayingState(
   config: NewGameConfig,
-  opts: { startingMoney?: number; generation?: number } = {}
+  opts: { startingMoney?: number; generation?: number; assets?: Character['assets'] } = {}
 ): GameState {
   let character = createCharacter(config);
   if (opts.startingMoney && opts.startingMoney > 0) {
     character = { ...character, money: opts.startingMoney };
+  }
+  if (opts.assets && opts.assets.length > 0) {
+    character = { ...character, assets: opts.assets };
   }
 
   const firedEventIds = new Set<string>();
@@ -335,8 +338,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (children.length === 0) return;
 
     const heir = children[0]; // eldest
-    const estate = netWorth(parent);
-    const inheritance = Math.round((estate * 0.6) / children.length);
+    // Collectibles (the family art, jewelry, heirlooms) pass down intact to the
+    // eldest; the rest of the estate is split as cash.
+    const heirlooms = parent.assets.filter((a) => a.category === 'collectible');
+    const heirloomValue = heirlooms.reduce((s, a) => s + a.value, 0);
+    const liquidEstate = netWorth(parent) - heirloomValue;
+    const inheritance = Math.round((liquidEstate * 0.6) / children.length);
     const cls =
       inheritance >= 800000 ? 'upper' :
       inheritance >= 200000 ? 'middle' :
@@ -359,6 +366,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = freshPlayingState(config, {
       startingMoney: inheritance,
       generation: (state.generation ?? 1) + 1,
+      assets: heirlooms,
     });
     set(newState);
     saveToStorage(newState);

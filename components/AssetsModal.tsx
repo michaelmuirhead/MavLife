@@ -7,12 +7,13 @@ import type { AssetCategory } from '../engine/types';
 import { MenuShell, MenuSection } from './Menu';
 
 const CAT_META: Record<AssetCategory, { label: string; emoji: string }> = {
-  home:    { label: 'Homes',   emoji: '🏠' },
-  vehicle: { label: 'Vehicles', emoji: '🚗' },
-  pet:     { label: 'Pets',    emoji: '🐾' },
-  luxury:  { label: 'Luxury',  emoji: '💎' },
+  home:        { label: 'Homes',       emoji: '🏠' },
+  vehicle:     { label: 'Vehicles',    emoji: '🚗' },
+  pet:         { label: 'Pets',        emoji: '🐾' },
+  luxury:      { label: 'Luxury',      emoji: '🛥️' },
+  collectible: { label: 'Collectibles', emoji: '💎' },
 };
-const CAT_ORDER: AssetCategory[] = ['home', 'vehicle', 'pet', 'luxury'];
+const CAT_ORDER: AssetCategory[] = ['home', 'vehicle', 'pet', 'luxury', 'collectible'];
 
 export default function AssetsModal({ onClose }: { onClose: () => void }) {
   const character = useGameStore((s) => s.character);
