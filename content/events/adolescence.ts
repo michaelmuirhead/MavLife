@@ -486,9 +486,9 @@ export const ADOLESCENCE_EVENTS: GameEvent[] = [
 
   {
     id: 'leaving_home',
-    ageRange: [18, 18],
+    ageRange: [18, 19],
     weight: 'consequence',
-    requires: { flags: ['graduated_high_school'] },
+    requires: { flags: ['graduated_high_school'], notFlags: ['left_home'] },
     narrative: 'You left home. Your mother stood in the driveway. Your father shook your hand. The house you were leaving was smaller than it used to be — not because it had changed, but because you had.',
     autoConsequences: [
       { type: 'flag', key: 'left_home', value: true },

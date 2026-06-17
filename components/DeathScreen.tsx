@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore } from '../store/gameStore';
+import type { Character } from '../engine/types';
 
 export default function DeathScreen() {
   const { character, age, lifeEvents, goToTitle, goToNewGame } = useGameStore();
@@ -26,7 +27,7 @@ export default function DeathScreen() {
 
           <div className="border-t border-zinc-800 pt-6">
             <p className="text-zinc-300 text-sm leading-relaxed italic">
-              {getEpitaph(character.familyClass, character.familyStability, yearsLived)}
+              {getEpitaph(character, yearsLived)}
             </p>
           </div>
         </div>
@@ -68,19 +69,47 @@ export default function DeathScreen() {
   );
 }
 
-function getEpitaph(
-  familyClass: string,
-  stability: string,
-  age: number
-): string {
-  if (age < 40) return 'Gone too soon. Left things unfinished. Most people do.';
-  if (stability === 'volatile' || stability === 'struggling') {
-    return 'Built something from difficult ground. That takes a kind of strength that doesn\'t get named enough.';
+function getEpitaph(character: Character, age: number): string {
+  const f = character.flags;
+  const has = (k: string) => Boolean(f[k]);
+
+  // Died young — the shape of the life never fully arrived
+  if (age < 35) {
+    if (has('serious_partner') || has('married')) {
+      return 'Gone far too soon. Loved someone fully in the time there was. That time was not enough, and it was not nothing.';
+    }
+    return 'Gone too soon. So much of it left unwritten. The promise of the life outlived the life itself.';
   }
-  if (familyClass === 'poor' || familyClass === 'working') {
-    return 'Worked hard. Loved people. Made do with what was there. A life fully lived.';
+  if (age < 55) {
+    if (has('has_children')) {
+      return 'Cut short in the middle of the work — raising people, building things. Left a mark in the ones who carry on.';
+    }
+    return 'Cut short before the third act. There was more to come. There always is.';
   }
-  if (age > 80) {
+
+  // Lived a full span — judge by what was built
+  if (has('at_peace') && has('reviewed_life')) {
+    return 'Reached the end and found it good. Made peace with the whole of it — the wins, the losses, the unrepeatable arc. Few manage that. They did.';
+  }
+  if (has('pursued_legacy') || (character.values.legacy ?? 0) >= 2) {
+    return 'Built things meant to outlast the builder. The name will fade; the ripples will not. A life that reached beyond itself.';
+  }
+  if (has('reconciled')) {
+    return 'Mended what could be mended before the end. Chose connection over pride when it counted most. Left fewer wounds open than they found.';
+  }
+  if (has('lost_partner')) {
+    return 'Loved one person across most of a lifetime, and carried the loss of them with grace. A long, faithful, well-weathered life.';
+  }
+  if (has('divorced')) {
+    return 'Lived honestly, even when honesty broke things. Refused to settle for a life that wasn\'t true. That kind of courage costs, and pays.';
+  }
+  if (has('has_children')) {
+    return 'Made people and shaped them and let them go. The truest legacy there is — written into the ones who come after.';
+  }
+  if (character.familyStability === 'volatile' || character.familyStability === 'struggling') {
+    return 'Built something solid from difficult ground. That takes a kind of strength that doesn\'t get named enough.';
+  }
+  if (age > 82) {
     return 'Outlasted most of the things that were supposed to stop them. A long life, honestly lived.';
   }
   return 'A life that mattered to the people who knew it. Which is most of what you can ask for.';

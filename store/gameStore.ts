@@ -42,6 +42,60 @@ function applyNaturalAging(character: Character, age: number, years: number): Ch
   return { ...character, stats };
 }
 
+// ─── Mortality ───────────────────────────────────────────────────────────
+// Lives can end before 90. Risk rises steeply with age and is amplified by
+// poor health. Health hitting zero is always fatal. Returns a cause string
+// if the character dies this step, otherwise null.
+
+function rollMortality(character: Character, age: number, years: number): string | null {
+  const health = character.stats.health;
+
+  // Total bodily failure
+  if (health <= 0) {
+    return age < 50 ? 'a sudden illness' : 'a body that finally gave out';
+  }
+
+  // Base yearly risk by age band
+  let baseRisk: number;
+  if (age < 40) baseRisk = 0.0008;
+  else if (age < 50) baseRisk = 0.003;
+  else if (age < 60) baseRisk = 0.007;
+  else if (age < 70) baseRisk = 0.016;
+  else if (age < 80) baseRisk = 0.04;
+  else baseRisk = 0.1;
+
+  // Poor health multiplies the risk (no effect at health ≥ 60, up to ~3x at 0)
+  const healthMod = 1 + Math.max(0, 60 - health) / 30;
+  const yearRisk = baseRisk * healthMod;
+
+  // Compound the per-year risk across the tap's span
+  const survival = Math.pow(1 - Math.min(0.95, yearRisk), years);
+  if (Math.random() < 1 - survival) {
+    return deathCause(age, health);
+  }
+
+  return null;
+}
+
+function deathCause(age: number, health: number): string {
+  if (age < 35) {
+    const causes = ['an accident', 'a sudden illness', 'something no one saw coming'];
+    return causes[Math.floor(Math.random() * causes.length)];
+  }
+  if (age < 60) {
+    const causes = health < 40
+      ? ['a heart that had been warning you', 'an illness caught too late', 'years of wear catching up']
+      : ['a sudden illness', 'an accident', 'a quiet failure of the body'];
+    return causes[Math.floor(Math.random() * causes.length)];
+  }
+  const causes = ['old age', 'a long decline', 'the slow closing of things', 'a final, quiet morning'];
+  return causes[Math.floor(Math.random() * causes.length)];
+}
+
+function deathNarrative(name: string, age: number, cause: string): string {
+  return `At ${age}, ${name} died — ${cause}. The world went on, as it does, a little quieter for the absence.`;
+}
+
 // ─── Initial State ─────────────────────────────────────────────────────────
 
 function emptyState(): Omit<GameState, 'phase'> {
@@ -164,16 +218,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const newAge = state.age + state.tapSpeed;
 
-    // End of life at 90
+    // Apply natural aging to stats each year
+    let newCharacter = applyNaturalAging(state.character, newAge, state.tapSpeed);
+
+    // Hard end of life at 90 — no one outlives it here
     if (newAge >= 90) {
       const deathEvent = {
         id: 'death',
-        age: newAge,
-        text: `You died at ${newAge}.`,
+        age: 90,
+        text: deathNarrative(newCharacter.name, 90, 'the long arc finally complete'),
       };
       const newState = {
         ...state,
-        age: newAge,
+        age: 90,
+        character: newCharacter,
         phase: 'dead' as GamePhase,
         lifeEvents: [...state.lifeEvents, deathEvent],
         pendingEvent: null,
@@ -183,8 +241,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // Apply natural aging to stats each year
-    let newCharacter = applyNaturalAging(state.character, newAge, state.tapSpeed);
+    // Mortality check — lives can end early from age and poor health
+    const cause = rollMortality(newCharacter, newAge, state.tapSpeed);
+    if (cause) {
+      const deathEvent = {
+        id: 'death',
+        age: newAge,
+        text: deathNarrative(newCharacter.name, newAge, cause),
+      };
+      const newState = {
+        ...state,
+        age: newAge,
+        character: newCharacter,
+        phase: 'dead' as GamePhase,
+        lifeEvents: [...state.lifeEvents, deathEvent],
+        pendingEvent: null,
+      };
+      set(newState);
+      saveToStorage(newState);
+      return;
+    }
 
     // Select an event for this age
     const event = selectEvent(newAge, newCharacter, state.firedEventIds);
