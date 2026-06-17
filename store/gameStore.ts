@@ -302,10 +302,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       // No event this year — quiet year
       const quietTexts = [
-        `Age ${newAge}. An ordinary year.`,
-        `Age ${newAge}. Nothing unusual.`,
-        `Age ${newAge}. Time passed.`,
-        `Age ${newAge}. Life continued.`,
+        'An ordinary year. Nothing much happened.',
+        'A quiet year. Time passed without event.',
+        'Nothing unusual. Life simply continued.',
+        'A calm stretch. The days went by.',
       ];
       newEvents.push({
         id: `quiet_${newAge}`,

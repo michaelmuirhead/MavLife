@@ -11,54 +11,55 @@ export default function DeathScreen() {
   const yearsLived = age;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
-      <div className="max-w-sm w-full flex flex-col gap-10">
+    <div className="brick-bg min-h-screen flex flex-col max-w-md mx-auto shadow-2xl">
+
+      {/* Red banner */}
+      <div className="bg-[#e8392f] pt-12 pb-8 px-6 shadow-md flex flex-col items-center">
+        <div className="text-5xl mb-2">🪦</div>
+        <p className="text-white/85 text-xs font-extrabold tracking-[0.3em] uppercase">Game Over</p>
+        <h2 className="text-white font-black text-3xl mt-1">{character.name}</h2>
+        <p className="text-white/85 text-sm font-bold mt-0.5">
+          {character.birthYear} – {character.birthYear + yearsLived}
+        </p>
+        <p className="text-white/70 text-xs font-bold">{character.location}</p>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center px-6 gap-6 py-8">
 
         {/* Epitaph */}
-        <div className="text-center flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-zinc-500 text-xs tracking-widest uppercase">End of Life</p>
-            <h2 className="text-2xl font-light text-white">{character.name}</h2>
-            <p className="text-zinc-400 text-sm">
-              {character.birthYear} – {character.birthYear + yearsLived}
-            </p>
-            <p className="text-zinc-600 text-sm">{character.location}</p>
-          </div>
-
-          <div className="border-t border-zinc-800 pt-6">
-            <p className="text-zinc-300 text-sm leading-relaxed italic">
-              {getEpitaph(character, yearsLived)}
-            </p>
-          </div>
+        <div className="bg-white rounded-2xl shadow-md px-5 py-5 border border-[#e0e0e0]">
+          <p className="text-[#444] text-[15px] leading-relaxed italic text-center">
+            {getEpitaph(character, yearsLived)}
+          </p>
         </div>
 
         {/* Life stats */}
-        <div className="flex justify-around border border-zinc-800 py-5">
+        <div className="flex justify-around bg-white rounded-2xl shadow-md py-5 border border-[#e0e0e0]">
           <div className="text-center">
-            <p className="text-2xl font-light text-white">{yearsLived}</p>
-            <p className="text-zinc-600 text-xs tracking-wider uppercase mt-1">Years</p>
+            <p className="text-3xl font-black text-[#1f86d8]">{yearsLived}</p>
+            <p className="text-[#9a9a9a] text-[10px] font-extrabold tracking-wider uppercase mt-1">Years</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-light text-white">{lifeEvents.length}</p>
-            <p className="text-zinc-600 text-xs tracking-wider uppercase mt-1">Events</p>
+            <p className="text-3xl font-black text-[#46b93a]">{lifeEvents.length}</p>
+            <p className="text-[#9a9a9a] text-[10px] font-extrabold tracking-wider uppercase mt-1">Events</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-light text-white">{choicesMade}</p>
-            <p className="text-zinc-600 text-xs tracking-wider uppercase mt-1">Choices</p>
+            <p className="text-3xl font-black text-[#e8392f]">{choicesMade}</p>
+            <p className="text-[#9a9a9a] text-[10px] font-extrabold tracking-wider uppercase mt-1">Choices</p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 pt-2">
           <button
             onClick={goToNewGame}
-            className="w-full py-4 bg-white text-black text-sm font-medium tracking-widest uppercase hover:bg-zinc-200 transition-colors"
+            className="btn-3d w-full py-4 bg-[#46b93a] border-[#34972b] text-white text-base font-extrabold tracking-wide uppercase rounded-2xl shadow-lg hover:bg-[#4ec441]"
           >
             New Life
           </button>
           <button
             onClick={goToTitle}
-            className="w-full py-4 border border-zinc-700 text-zinc-400 text-sm font-medium tracking-widest uppercase hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+            className="btn-3d w-full py-4 bg-white border-[#cfcfcf] text-[#1f86d8] text-base font-extrabold tracking-wide uppercase rounded-2xl shadow hover:bg-[#f5faff]"
           >
             Title Screen
           </button>

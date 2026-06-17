@@ -52,44 +52,49 @@ export default function NewGameScreen() {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white px-6 py-10 overflow-y-auto">
-      <div className="max-w-sm mx-auto flex flex-col gap-8">
+  const pillBase =
+    'btn-3d py-3 text-sm font-extrabold rounded-xl transition-colors';
+  const pillOn = 'bg-[#1f86d8] border-[#1668ad] text-white shadow';
+  const pillOff = 'bg-white border-[#cfcfcf] text-[#555] hover:bg-[#f5faff]';
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={goToTitle} className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors">
-            ← Back
-          </button>
-          <h2 className="text-sm tracking-widest uppercase text-zinc-400">New Life</h2>
-          <div className="w-12" />
-        </div>
+  return (
+    <div className="brick-bg min-h-screen flex flex-col max-w-md mx-auto shadow-2xl">
+
+      {/* Red header */}
+      <header className="bg-[#e8392f] flex items-center justify-between px-3 py-3 shadow-md sticky top-0 z-20">
+        <button
+          onClick={goToTitle}
+          className="text-white font-extrabold text-sm px-2 active:scale-95 transition-transform"
+        >
+          ← Back
+        </button>
+        <h2 className="text-white font-black text-lg italic tracking-tight">New Life</h2>
+        <div className="w-12" />
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
 
         {/* Name */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">Name</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">Name</label>
           <input
             type="text"
             value={config.name}
             onChange={(e) => setConfig({ ...config, name: e.target.value })}
             placeholder="Enter a name"
-            className="bg-zinc-900 border border-zinc-700 text-white px-4 py-3 text-base placeholder-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+            className="bg-white border-2 border-[#cfcfcf] text-[#1a1a1a] font-bold px-4 py-3 text-base rounded-xl placeholder-[#b0b0b0] focus:outline-none focus:border-[#1f86d8] transition-colors"
           />
         </div>
 
         {/* Gender */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">Gender</label>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">Gender</label>
+          <div className="grid grid-cols-3 gap-2">
             {(['male', 'female', 'nonbinary'] as const).map((g) => (
               <button
                 key={g}
                 onClick={() => setConfig({ ...config, gender: g })}
-                className={`flex-1 py-3 text-sm border transition-colors capitalize ${
-                  config.gender === g
-                    ? 'border-white text-white'
-                    : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
-                }`}
+                className={`${pillBase} ${config.gender === g ? pillOn : pillOff}`}
               >
                 {g === 'nonbinary' ? 'Non-binary' : g.charAt(0).toUpperCase() + g.slice(1)}
               </button>
@@ -98,31 +103,31 @@ export default function NewGameScreen() {
         </div>
 
         {/* Birth Year */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">
-            Birth Year — {config.birthYear}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">
+            Birth Year — <span className="text-[#1f86d8]">{config.birthYear}</span>
           </label>
           <input
             type="range"
             min={1950}
-            max={2010}
+            max={2009}
             value={config.birthYear}
             onChange={(e) => setConfig({ ...config, birthYear: parseInt(e.target.value) })}
-            className="w-full accent-white"
+            className="w-full mt-1"
           />
-          <div className="flex justify-between text-xs text-zinc-600">
+          <div className="flex justify-between text-xs font-bold text-[#9a9a9a]">
             <span>1950</span>
-            <span>2010</span>
+            <span>2009</span>
           </div>
         </div>
 
         {/* Location */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">Location</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">Location</label>
           <select
             value={config.location}
             onChange={(e) => setConfig({ ...config, location: e.target.value })}
-            className="bg-zinc-900 border border-zinc-700 text-white px-4 py-3 text-base focus:outline-none focus:border-zinc-400 transition-colors"
+            className="bg-white border-2 border-[#cfcfcf] text-[#1a1a1a] font-bold px-4 py-3 text-base rounded-xl focus:outline-none focus:border-[#1f86d8] transition-colors"
           >
             {LOCATIONS.map((loc) => (
               <option key={loc} value={loc}>{loc}</option>
@@ -131,8 +136,8 @@ export default function NewGameScreen() {
         </div>
 
         {/* Family Class */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">Family Background</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">Family Background</label>
           <div className="grid grid-cols-2 gap-2">
             {([
               ['poor', 'Struggling Poor'],
@@ -143,11 +148,7 @@ export default function NewGameScreen() {
               <button
                 key={val}
                 onClick={() => setConfig({ ...config, familyClass: val })}
-                className={`py-3 text-sm border transition-colors ${
-                  config.familyClass === val
-                    ? 'border-white text-white'
-                    : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
-                }`}
+                className={`${pillBase} ${config.familyClass === val ? pillOn : pillOff}`}
               >
                 {label}
               </button>
@@ -156,8 +157,8 @@ export default function NewGameScreen() {
         </div>
 
         {/* Family Stability */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs tracking-widest uppercase text-zinc-500">Home Life</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[#7a7a7a]">Home Life</label>
           <div className="grid grid-cols-2 gap-2">
             {([
               ['volatile', 'Volatile'],
@@ -168,11 +169,7 @@ export default function NewGameScreen() {
               <button
                 key={val}
                 onClick={() => setConfig({ ...config, familyStability: val })}
-                className={`py-3 text-sm border transition-colors ${
-                  config.familyStability === val
-                    ? 'border-white text-white'
-                    : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
-                }`}
+                className={`${pillBase} ${config.familyStability === val ? pillOn : pillOff}`}
               >
                 {label}
               </button>
@@ -181,19 +178,19 @@ export default function NewGameScreen() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 pt-2 pb-8">
+        <div className="flex flex-col gap-3 pt-2 pb-6">
           <button
             onClick={handleStart}
             disabled={!config.name.trim()}
-            className="w-full py-4 bg-white text-black text-sm font-medium tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-200 transition-colors"
+            className="btn-3d w-full py-4 bg-[#46b93a] border-[#34972b] text-white text-base font-extrabold tracking-wide uppercase rounded-2xl shadow-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4ec441]"
           >
             Begin This Life
           </button>
           <button
             onClick={handleRandom}
-            className="w-full py-4 border border-zinc-700 text-zinc-400 text-sm font-medium tracking-widest uppercase hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+            className="btn-3d w-full py-4 bg-white border-[#cfcfcf] text-[#1f86d8] text-base font-extrabold tracking-wide uppercase rounded-2xl shadow hover:bg-[#f5faff]"
           >
-            Randomize Everything
+            🎲 Randomize Everything
           </button>
         </div>
 
