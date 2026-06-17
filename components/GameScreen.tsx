@@ -10,8 +10,9 @@ import RelationshipsModal from './RelationshipsModal';
 import EducationModal from './EducationModal';
 import HealthModal from './HealthModal';
 import InvestmentsModal from './InvestmentsModal';
+import SocialModal from './SocialModal';
 
-type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health' | 'investments';
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education' | 'health' | 'investments' | 'social';
 
 const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'relationships', emoji: '🫂', label: 'Relations' },
@@ -21,6 +22,7 @@ const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'health',        emoji: '❤️', label: 'Health' },
   { key: 'assets',        emoji: '🏠', label: 'Assets' },
   { key: 'investments',   emoji: '📈', label: 'Invest' },
+  { key: 'social',        emoji: '📱', label: 'Social' },
 ];
 
 // ─── Stat Config ───────────────────────────────────────────────────────────
@@ -201,7 +203,7 @@ function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (
 function ActionBar({ onTap, onOpen }: { onTap: () => void; onOpen: (k: ModalKey) => void }) {
   return (
     <div className="brick-bg flex flex-col items-center gap-2.5 pt-2.5 pb-3.5 border-t-2 border-[#c4c4c4]">
-      <div className="flex gap-3.5">
+      <div className="flex flex-wrap justify-center gap-x-3.5 gap-y-2 px-2">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.key}
@@ -289,6 +291,7 @@ export default function GameScreen() {
       {openModal === 'education' && <EducationModal onClose={() => setOpenModal(null)} />}
       {openModal === 'health' && <HealthModal onClose={() => setOpenModal(null)} />}
       {openModal === 'investments' && <InvestmentsModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'social' && <SocialModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

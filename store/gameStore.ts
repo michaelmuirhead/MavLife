@@ -25,6 +25,8 @@ import {
 } from '../engine/health/logic';
 import { getInstrument } from '../content/investments/catalog';
 import { settleInvestmentYear, holdingValue } from '../engine/investments/logic';
+import { getPlatform } from '../content/social/platforms';
+import { joinAvailability, post, settleSocialYear, joined } from '../engine/social/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -216,6 +218,10 @@ interface GameStore extends GameState {
   buyInvestment: (defId: string, amount: number) => void;
   sellInvestment: (defId: string) => void;
 
+  // Social media
+  joinPlatform: (platformId: string) => void;
+  postContent: (platformId: string) => void;
+
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
 }
@@ -225,7 +231,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -264,6 +270,7 @@ function isValidSave(s: unknown): s is GameState {
   if (!Array.isArray(c.assets)) return false;
   if (!Array.isArray(c.conditions)) return false;
   if (!Array.isArray(c.investments)) return false;
+  if (!c.socials || typeof c.socials !== 'object') return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -400,6 +407,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Investments drift by a year of market returns
     if (newCharacter.investments.length > 0) {
       newCharacter = { ...newCharacter, investments: settleInvestmentYear(newCharacter, state.tapSpeed) };
+    }
+
+    // Social media: monetize the audience, and let followings drift down
+    if (Object.keys(newCharacter.socials).length > 0) {
+      const sy = settleSocialYear(newCharacter, state.tapSpeed);
+      newCharacter = {
+        ...newCharacter,
+        socials: sy.socials,
+        money: newCharacter.money + sy.income,
+      };
     }
 
     // Automatic life events that fire before the year's random event (e.g.
@@ -771,6 +788,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
       `You cashed out of ${def?.name ?? 'an investment'} for $${Math.round(value).toLocaleString()}.`,
       [{ type: 'investment_sell', defId }]
     );
+  },
+
+  joinPlatform: (platformId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const def = getPlatform(platformId);
+    if (!def) return;
+    if (!joinAvailability(def, state.character, state.age).ok) return;
+    const repCost = def.reputationCost
+      ? [{ type: 'wound', key: 'shame', delta: 1 } as const]
+      : [];
+    commitOutcome(
+      set, get, 'social',
+      `You joined ${def.name}. A new handle, an empty profile, the small hope that someone out there is waiting for exactly what you'll post.`,
+      [{ type: 'social_join', platform: platformId }, ...repCost]
+    );
+  },
+
+  postContent: (platformId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const def = getPlatform(platformId);
+    if (!def || !joined(state.character, platformId)) return;
+    if (state.character.flags[`posted_${platformId}_year`] === state.age) return; // once/year
+    const outcome = post(def, state.character);
+    commitOutcome(set, get, 'social', outcome.narrative, [
+      ...outcome.consequences,
+      { type: 'flag', key: `posted_${platformId}_year`, value: state.age },
+    ]);
   },
 
   setTapSpeed: (speed) => {

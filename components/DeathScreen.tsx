@@ -3,6 +3,7 @@
 import { useGameStore } from '../store/gameStore';
 import type { Character } from '../engine/types';
 import { netWorth } from '../engine/assets/logic';
+import { totalFollowers, fameScore, fameTitle, formatFollowers } from '../engine/social/logic';
 
 const DEGREE_RIBBONS: { flag: string; label: string }[] = [
   { flag: 'med_degree', label: 'MD' },
@@ -22,6 +23,8 @@ function ribbons(character: Character): string[] {
   const kids = Object.values(character.relationships).filter((r) => r.type === 'child').length;
   if (kids > 0) out.push(`🧒 ${kids} ${kids === 1 ? 'child' : 'children'}`);
   if (character.flags['married']) out.push('💍 Married');
+  const fans = totalFollowers(character);
+  if (fans >= 1000) out.push(`📱 ${fameTitle(fameScore(character))} (${formatFollowers(fans)})`);
   if (character.assets.length > 0) out.push(`🏠 ${character.assets.length} ${character.assets.length === 1 ? 'asset' : 'assets'}`);
   if (character.flags['criminal_record']) out.push('🕶️ Criminal record');
   return out;

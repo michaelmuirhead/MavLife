@@ -20,6 +20,7 @@ export function applyConsequences(
     assets: [...character.assets],
     conditions: [...character.conditions],
     investments: character.investments.map((i) => ({ ...i })),
+    socials: { ...character.socials },
     relationships: Object.fromEntries(
       Object.entries(character.relationships).map(([k, v]) => [
         k,
@@ -136,6 +137,19 @@ export function applyConsequences(
           next.money = next.money + Math.round(holding.value);
           next.investments = next.investments.filter((i) => i.defId !== c.defId);
         }
+        break;
+      }
+
+      case 'social_join': {
+        if (next.socials[c.platform] === undefined) {
+          next.socials = { ...next.socials, [c.platform]: 0 };
+        }
+        break;
+      }
+
+      case 'social_followers': {
+        const cur = next.socials[c.platform] ?? 0;
+        next.socials = { ...next.socials, [c.platform]: Math.max(0, Math.round(cur + c.delta)) };
         break;
       }
     }

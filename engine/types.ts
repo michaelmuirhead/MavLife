@@ -103,6 +103,7 @@ export interface Character {
   assets: OwnedAsset[];
   conditions: ActiveCondition[];
   investments: Investment[];
+  socials: Record<string, number>; // platform id -> follower count (key present = joined)
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -124,7 +125,9 @@ export type ConsequenceType =
   | { type: 'condition_add'; condition: ActiveCondition }
   | { type: 'condition_remove'; id: string }
   | { type: 'investment_buy'; defId: string; name: string; amount: number }
-  | { type: 'investment_sell'; defId: string };
+  | { type: 'investment_sell'; defId: string }
+  | { type: 'social_join'; platform: string }
+  | { type: 'social_followers'; platform: string; delta: number };
 
 // ─── Shared Eligibility ────────────────────────────────────────────────────
 // Used to gate both events and activities (and individual activity outcomes).
