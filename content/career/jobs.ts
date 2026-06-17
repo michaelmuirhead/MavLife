@@ -66,13 +66,13 @@ export const ALL_JOBS: Job[] = [
   // ─── High-status (steep gates) ───────────────────────────────────────────
   {
     id: 'lawyer', title: 'Lawyer', field: 'Law',
-    baseSalary: 110000, ageRange: [25, 70], difficulty: 0.65,
-    requires: { minStat: { smarts: 75, charisma: 55 } },
+    baseSalary: 110000, ageRange: [25, 70], difficulty: 0.6,
+    requires: { flags: ['law_degree'], minStat: { charisma: 50 } },
   },
   {
     id: 'doctor', title: 'Doctor', field: 'Medicine',
-    baseSalary: 160000, ageRange: [28, 70], difficulty: 0.75,
-    requires: { minStat: { smarts: 82 } },
+    baseSalary: 160000, ageRange: [28, 70], difficulty: 0.7,
+    requires: { flags: ['med_degree'] },
   },
 
 ];

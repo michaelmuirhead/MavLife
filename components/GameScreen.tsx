@@ -7,12 +7,14 @@ import ActivitiesModal from './ActivitiesModal';
 import CareerModal from './CareerModal';
 import AssetsModal from './AssetsModal';
 import RelationshipsModal from './RelationshipsModal';
+import EducationModal from './EducationModal';
 
-type ModalKey = 'activities' | 'career' | 'assets' | 'relationships';
+type ModalKey = 'activities' | 'career' | 'assets' | 'relationships' | 'education';
 
 const NAV_ITEMS: { key: ModalKey; emoji: string; label: string }[] = [
   { key: 'relationships', emoji: '🫂', label: 'Relations' },
   { key: 'activities',    emoji: '💪', label: 'Activities' },
+  { key: 'education',     emoji: '🎓', label: 'School' },
   { key: 'career',        emoji: '💼', label: 'Career' },
   { key: 'assets',        emoji: '🏠', label: 'Assets' },
 ];
@@ -195,7 +197,7 @@ function ChoiceInterface({ choices, onChoice }: { choices: Choice[]; onChoice: (
 function ActionBar({ onTap, onOpen }: { onTap: () => void; onOpen: (k: ModalKey) => void }) {
   return (
     <div className="brick-bg flex flex-col items-center gap-2.5 pt-2.5 pb-3.5 border-t-2 border-[#c4c4c4]">
-      <div className="flex gap-5">
+      <div className="flex gap-3.5">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.key}
@@ -280,6 +282,7 @@ export default function GameScreen() {
       {openModal === 'career' && <CareerModal onClose={() => setOpenModal(null)} />}
       {openModal === 'assets' && <AssetsModal onClose={() => setOpenModal(null)} />}
       {openModal === 'relationships' && <RelationshipsModal onClose={() => setOpenModal(null)} />}
+      {openModal === 'education' && <EducationModal onClose={() => setOpenModal(null)} />}
 
     </div>
   );

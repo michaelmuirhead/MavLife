@@ -17,6 +17,8 @@ import {
   lineageSurname,
 } from '../engine/relationships/logic';
 import { randomGender } from '../content/names';
+import { getProgram } from '../content/education';
+import { enrollAvailability, enroll, graduate, dropOut, enrolledProgram, gradAge } from '../engine/education/logic';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -197,6 +199,10 @@ interface GameStore extends GameState {
   propose: () => void;
   haveChild: () => void;
 
+  // Education
+  enroll: (programId: string) => void;
+  dropOut: () => void;
+
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
 }
@@ -370,6 +376,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    // Automatic life events that fire before the year's random event (e.g.
+    // graduating once the program's end is reached).
+    const preEvents: GameState['lifeEvents'] = [];
+    const program = enrolledProgram(newCharacter);
+    const ga = gradAge(newCharacter);
+    if (program && ga !== undefined && newAge >= ga) {
+      const grad = graduate(program);
+      newCharacter = applyConsequences(newCharacter, grad.consequences);
+      preEvents.push({
+        id: `grad_${program.id}_${newAge}`,
+        age: newAge,
+        text: interpolate(grad.narrative, newCharacter),
+        kind: 'activity',
+      });
+    }
+
     // Hard end of life at 90 — no one outlives it here
     if (newAge >= 90) {
       const deathEvent = {
@@ -382,7 +404,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         age: 90,
         character: newCharacter,
         phase: 'dead' as GamePhase,
-        lifeEvents: [...state.lifeEvents, deathEvent],
+        lifeEvents: [...state.lifeEvents, ...preEvents, deathEvent],
         pendingEvent: null,
       };
       set(newState);
@@ -403,7 +425,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         age: newAge,
         character: newCharacter,
         phase: 'dead' as GamePhase,
-        lifeEvents: [...state.lifeEvents, deathEvent],
+        lifeEvents: [...state.lifeEvents, ...preEvents, deathEvent],
         pendingEvent: null,
       };
       set(newState);
@@ -415,7 +437,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const event = selectEvent(newAge, newCharacter, state.firedEventIds);
 
     const newFiredIds = new Set(state.firedEventIds);
-    const newEvents = [...state.lifeEvents];
+    const newEvents = [...state.lifeEvents, ...preEvents];
 
     if (event) {
       newFiredIds.add(event.id);
@@ -639,6 +661,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...outcome.consequences,
       { type: 'flag', key: 'tried_child_year', value: state.age },
     ]);
+  },
+
+  enroll: (programId: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const program = getProgram(programId);
+    if (!program) return;
+    if (!enrollAvailability(program, state.character, state.age).ok) return;
+    const outcome = enroll(program, state.age);
+    commitOutcome(set, get, 'edu', outcome.narrative, outcome.consequences);
+  },
+
+  dropOut: () => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+    const program = enrolledProgram(state.character);
+    if (!program) return;
+    const outcome = dropOut(program);
+    commitOutcome(set, get, 'edu', outcome.narrative, outcome.consequences);
   },
 
   setTapSpeed: (speed) => {
