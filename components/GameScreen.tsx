@@ -81,7 +81,7 @@ function StatsPanel() {
 // ─── Character Card ─────────────────────────────────────────────────────────
 
 function CharacterCard() {
-  const { character, age } = useGameStore();
+  const { character, age, generation } = useGameStore();
 
   const lifeStage =
     age < 1 ? 'Newborn' :
@@ -104,6 +104,11 @@ function CharacterCard() {
             <span className="text-[#1f86d8] font-extrabold text-lg leading-tight truncate">
               {character.name}
             </span>
+            {generation > 1 && (
+              <span className="text-[9px] font-black text-white bg-[#1f86d8] rounded-full px-1.5 py-0.5 shrink-0">
+                GEN {generation}
+              </span>
+            )}
           </div>
           <div className="text-[#7a7a7a] text-xs font-bold truncate flex items-center gap-2">
             <span>🧬 {role}</span>

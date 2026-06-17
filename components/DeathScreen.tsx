@@ -4,11 +4,14 @@ import { useGameStore } from '../store/gameStore';
 import type { Character } from '../engine/types';
 
 export default function DeathScreen() {
-  const { character, age, lifeEvents, goToTitle, goToNewGame } = useGameStore();
+  const { character, age, lifeEvents, generation, goToTitle, goToNewGame, continueAsHeir } = useGameStore();
 
   // Count meaningful events
   const choicesMade = lifeEvents.filter((e) => e.isChoice).length;
   const yearsLived = age;
+
+  const heirs = Object.values(character.relationships).filter((r) => r.type === 'child');
+  const hasHeir = heirs.length > 0;
 
   return (
     <div className="brick-bg min-h-screen flex flex-col max-w-md mx-auto shadow-2xl">
@@ -16,7 +19,9 @@ export default function DeathScreen() {
       {/* Red banner */}
       <div className="bg-[#e8392f] pt-12 pb-8 px-6 shadow-md flex flex-col items-center">
         <div className="text-5xl mb-2">🪦</div>
-        <p className="text-white/85 text-xs font-extrabold tracking-[0.3em] uppercase">Game Over</p>
+        <p className="text-white/85 text-xs font-extrabold tracking-[0.3em] uppercase">
+          {generation > 1 ? `Generation ${generation}` : 'Game Over'}
+        </p>
         <h2 className="text-white font-black text-3xl mt-1">{character.name}</h2>
         <p className="text-white/85 text-sm font-bold mt-0.5">
           {character.birthYear} – {character.birthYear + yearsLived}
@@ -51,6 +56,14 @@ export default function DeathScreen() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 pt-2">
+          {hasHeir && (
+            <button
+              onClick={continueAsHeir}
+              className="btn-3d w-full py-4 bg-[#1f86d8] border-[#176bb0] text-white text-base font-extrabold tracking-wide uppercase rounded-2xl shadow-lg hover:bg-[#2a93e5]"
+            >
+              Continue as {heirs[0].name}
+            </button>
+          )}
           <button
             onClick={goToNewGame}
             className="btn-3d w-full py-4 bg-[#46b93a] border-[#34972b] text-white text-base font-extrabold tracking-wide uppercase rounded-2xl shadow-lg hover:bg-[#4ec441]"

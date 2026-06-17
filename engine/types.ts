@@ -161,6 +161,7 @@ export interface GameState {
   tapSpeed: 1 | 2 | 4; // years per tap
   // activityId (or `activityId:targetId`) -> age last performed, for cooldowns
   activityLog: Record<string, number>;
+  generation: number; // 1 for the founder; increments each time you continue as an heir
 }
 
 // ─── New Game Config ───────────────────────────────────────────────────────

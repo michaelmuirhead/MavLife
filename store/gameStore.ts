@@ -10,11 +10,13 @@ import { isActivityAvailable, resolveActivity, cooldownKey } from '../engine/act
 import { getJob } from '../content/career/jobs';
 import { applyToJob, workHarder, askForRaise, quitJob, jobAvailability } from '../engine/career/logic';
 import { getAssetDef } from '../content/assets/catalog';
-import { buyAvailability, makeOwnedAsset, resaleValue, settleAssetYear } from '../engine/assets/logic';
+import { buyAvailability, makeOwnedAsset, resaleValue, settleAssetYear, netWorth } from '../engine/assets/logic';
 import {
   findLove, propose, haveChild,
   canFindLove, canPropose, canHaveChild,
+  lineageSurname,
 } from '../engine/relationships/logic';
+import { randomGender } from '../content/names';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -124,6 +126,45 @@ function emptyState(): Omit<GameState, 'phase'> {
     firedEventIds: new Set(),
     tapSpeed: 1,
     activityLog: {},
+    generation: 1,
+  };
+}
+
+// Build a fresh 'playing' state for a new life: create the character, fire the
+// birth event, and apply its consequences. Shared by a brand-new game and by
+// continuing as an heir (which injects inherited money and a higher generation).
+function freshPlayingState(
+  config: NewGameConfig,
+  opts: { startingMoney?: number; generation?: number } = {}
+): GameState {
+  let character = createCharacter(config);
+  if (opts.startingMoney && opts.startingMoney > 0) {
+    character = { ...character, money: opts.startingMoney };
+  }
+
+  const firedEventIds = new Set<string>();
+  const birthEvent = selectEvent(0, character, firedEventIds);
+  const lifeEvents = birthEvent
+    ? [{ id: birthEvent.id, age: 0, text: interpolate(birthEvent.narrative, character) }]
+    : [];
+
+  if (birthEvent) {
+    firedEventIds.add(birthEvent.id);
+    if (birthEvent.autoConsequences) {
+      character = applyConsequences(character, birthEvent.autoConsequences);
+    }
+  }
+
+  return {
+    phase: 'playing',
+    character,
+    age: 0,
+    lifeEvents,
+    pendingEvent: null,
+    firedEventIds,
+    tapSpeed: 1,
+    activityLog: {},
+    generation: opts.generation ?? 1,
   };
 }
 
@@ -133,6 +174,7 @@ interface GameStore extends GameState {
   // Phase transitions
   goToNewGame: () => void;
   startGame: (config: NewGameConfig) => void;
+  continueAsHeir: () => void;
   goToTitle: () => void;
 
   // Core game loop
@@ -164,7 +206,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -193,6 +235,7 @@ function isValidSave(s: unknown): s is GameState {
   if (typeof o.phase !== 'string' || typeof o.age !== 'number') return false;
   if (!Array.isArray(o.lifeEvents)) return false;
   if (!o.activityLog || typeof o.activityLog !== 'object') return false;
+  if (typeof o.generation !== 'number') return false;
 
   const c = o.character as Record<string, unknown> | null | undefined;
   if (!c || typeof c !== 'object') return false;
@@ -251,37 +294,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startGame: (config: NewGameConfig) => {
-    const character = createCharacter(config);
-    const firedEventIds = new Set<string>();
-    const age = 0;
+    const newState = freshPlayingState(config);
+    set(newState);
+    saveToStorage(newState);
+  },
 
-    // Fire the birth event immediately
-    const birthEvent = selectEvent(0, character, firedEventIds);
-    const lifeEvents = birthEvent
-      ? [{ id: birthEvent.id, age: 0, text: interpolate(birthEvent.narrative, character) }]
-      : [];
+  continueAsHeir: () => {
+    const state = get();
+    if (state.phase !== 'dead') return;
+    const parent = state.character;
+    const children = Object.values(parent.relationships).filter((r) => r.type === 'child');
+    if (children.length === 0) return;
 
-    const newFiredIds = new Set(firedEventIds);
-    let newCharacter = character;
+    const heir = children[0]; // eldest
+    const estate = netWorth(parent);
+    const inheritance = Math.round((estate * 0.6) / children.length);
+    const cls =
+      inheritance >= 800000 ? 'upper' :
+      inheritance >= 200000 ? 'middle' :
+      inheritance >= 40000 ? 'working' : 'poor';
 
-    if (birthEvent) {
-      newFiredIds.add(birthEvent.id);
-      if (birthEvent.autoConsequences) {
-        newCharacter = applyConsequences(character, birthEvent.autoConsequences);
-      }
-    }
+    const genderFlag = heir.flags.find((f) => f.startsWith('gender:'));
+    const gender = (genderFlag ? genderFlag.split(':')[1] : randomGender()) as Character['gender'];
+    const bornFlag = heir.flags.find((f) => f.startsWith('born:'));
+    const bornAge = bornFlag ? parseInt(bornFlag.split(':')[1], 10) : 25;
 
-    const newState: GameState = {
-      phase: 'playing',
-      character: newCharacter,
-      age,
-      lifeEvents,
-      pendingEvent: null,
-      firedEventIds: newFiredIds,
-      tapSpeed: 1,
-      activityLog: {},
+    const config: NewGameConfig = {
+      name: `${heir.name} ${lineageSurname(parent)}`,
+      gender,
+      birthYear: parent.birthYear + bornAge,
+      location: parent.location,
+      familyClass: cls,
+      familyStability: parent.familyStability,
     };
 
+    const newState = freshPlayingState(config, {
+      startingMoney: inheritance,
+      generation: (state.generation ?? 1) + 1,
+    });
     set(newState);
     saveToStorage(newState);
   },
