@@ -77,10 +77,10 @@ function rollMortality(character: Character, age: number, years: number): string
   let baseRisk: number;
   if (age < 40) baseRisk = 0.0008;
   else if (age < 50) baseRisk = 0.003;
-  else if (age < 60) baseRisk = 0.007;
-  else if (age < 70) baseRisk = 0.016;
-  else if (age < 80) baseRisk = 0.04;
-  else baseRisk = 0.1;
+  else if (age < 60) baseRisk = 0.006;
+  else if (age < 70) baseRisk = 0.013;
+  else if (age < 80) baseRisk = 0.025;
+  else baseRisk = 0.06;
 
   // Poor health multiplies the risk (no effect at health ≥ 60, up to ~3x at 0)
   const healthMod = 1 + Math.max(0, 60 - health) / 30;
@@ -360,12 +360,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Apply natural aging to stats each year
     let newCharacter = applyNaturalAging(state.character, newAge, state.tapSpeed);
 
-    // Pay out salary for the year(s) worked
-    if (newCharacter.salary > 0) {
-      newCharacter = {
-        ...newCharacter,
-        money: newCharacter.money + newCharacter.salary * state.tapSpeed,
-      };
+    // Pay out salary (after ~25% income tax) and charge a baseline cost of
+    // living for adults — together these keep wealth from running away.
+    {
+      let money = newCharacter.money;
+      if (newCharacter.salary > 0) money += Math.round(newCharacter.salary * 0.75) * state.tapSpeed;
+      // Cost of living scales with income (lifestyle creep), so high earners
+      // don't accumulate without limit.
+      if (newAge >= 22) {
+        const living = Math.max(14000, Math.round(newCharacter.salary * 0.35));
+        money -= living * state.tapSpeed;
+      }
+      newCharacter = { ...newCharacter, money: Math.max(0, money) };
     }
 
     // Settle assets: upkeep, value drift, and any yearly stat effects
@@ -766,4 +772,10 @@ export function loadSavedGame() {
   if (saved && saved.phase === 'playing') {
     useGameStore.setState(saved);
   }
+}
+
+// Dev-only: expose the store to the balance-simulation harness. Tree-shaken /
+// guarded out of production builds.
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as unknown as { __game?: typeof useGameStore }).__game = useGameStore;
 }
