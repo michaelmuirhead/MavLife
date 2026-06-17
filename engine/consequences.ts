@@ -75,6 +75,11 @@ export function applyConsequences(
         next.income = c.value;
         break;
       }
+
+      case 'money': {
+        next.money = Math.max(0, (next.money ?? 0) + c.delta);
+        break;
+      }
     }
   }
 

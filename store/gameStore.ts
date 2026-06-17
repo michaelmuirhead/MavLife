@@ -5,6 +5,8 @@ import type { GameState, GamePhase, NewGameConfig, GameEvent, Choice, Character,
 import { createCharacter } from '../engine/character';
 import { applyConsequences } from '../engine/consequences';
 import { selectEvent, interpolate } from '../engine/eventSelector';
+import { getActivity } from '../content/activities';
+import { isActivityAvailable, resolveActivity, cooldownKey } from '../engine/activities/resolve';
 
 // ─── Natural Aging ─────────────────────────────────────────────────────────
 // Stats decline naturally with age. Players can slow this via events/choices.
@@ -113,6 +115,7 @@ function emptyState(): Omit<GameState, 'phase'> {
     pendingEvent: null,
     firedEventIds: new Set(),
     tapSpeed: 1,
+    activityLog: {},
   };
 }
 
@@ -127,6 +130,7 @@ interface GameStore extends GameState {
   // Core game loop
   tap: () => void;
   makeChoice: (choice: Choice) => void;
+  performActivity: (activityId: string, targetId?: string) => void;
 
   // Settings
   setTapSpeed: (speed: GameState['tapSpeed']) => void;
@@ -137,7 +141,7 @@ interface GameStore extends GameState {
 const SAVE_KEY = 'lifespan_save';
 // Bump when the save shape changes so old, incompatible saves are discarded
 // rather than restored (restoring a stale shape crashes the UI).
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 const STAT_KEYS: StatType[] = ['health', 'happiness', 'looks', 'smarts', 'fitness', 'charisma'];
 
@@ -165,10 +169,12 @@ function isValidSave(s: unknown): s is GameState {
   if (o.version !== SAVE_VERSION) return false;
   if (typeof o.phase !== 'string' || typeof o.age !== 'number') return false;
   if (!Array.isArray(o.lifeEvents)) return false;
+  if (!o.activityLog || typeof o.activityLog !== 'object') return false;
 
   const c = o.character as Record<string, unknown> | null | undefined;
   if (!c || typeof c !== 'object') return false;
   if (typeof c.name !== 'string') return false;
+  if (typeof c.money !== 'number') return false;
   if (!c.relationships || typeof c.relationships !== 'object') return false;
   if (!c.flags || typeof c.flags !== 'object') return false;
 
@@ -248,6 +254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingEvent: null,
       firedEventIds: newFiredIds,
       tapSpeed: 1,
+      activityLog: {},
     };
 
     set(newState);
@@ -386,6 +393,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
       character: newCharacter,
       lifeEvents: [...state.lifeEvents, choiceEvent],
       pendingEvent: null,
+    };
+    set(newState);
+    saveToStorage(newState);
+  },
+
+  performActivity: (activityId: string, targetId?: string) => {
+    const state = get();
+    if (state.phase !== 'playing' || state.pendingEvent) return;
+
+    const activity = getActivity(activityId);
+    if (!activity) return;
+
+    // Re-check availability server-side of the UI — the menu greys out
+    // ineligible activities, but never trust that alone.
+    const avail = isActivityAvailable(activity, state.character, state.age, state.activityLog, targetId);
+    if (!avail.ok) return;
+
+    const { narrative, consequences } = resolveActivity(activity, state.character, targetId);
+    const newCharacter = applyConsequences(state.character, consequences);
+
+    const activityEvent = {
+      id: `act_${activityId}_${state.age}_${state.lifeEvents.length}`,
+      age: state.age,
+      text: interpolate(narrative, newCharacter),
+      kind: 'activity' as const,
+    };
+
+    const newState: GameState = {
+      ...state,
+      character: newCharacter,
+      lifeEvents: [...state.lifeEvents, activityEvent],
+      activityLog: {
+        ...state.activityLog,
+        [cooldownKey(activityId, targetId)]: state.age,
+      },
     };
     set(newState);
     saveToStorage(newState);

@@ -71,6 +71,7 @@ export interface Character {
   // Current state
   occupation: string | null;
   income: IncomeLevel;
+  money: number; // bank balance; clamped at 0, never negative for now
 }
 
 // ─── Event System ─────────────────────────────────────────────────────────
@@ -83,7 +84,23 @@ export type ConsequenceType =
   | { type: 'relationship_closeness'; key: string; delta: number }
   | { type: 'relationship_add'; relationship: Relationship }
   | { type: 'occupation'; value: string }
-  | { type: 'income'; value: IncomeLevel };
+  | { type: 'income'; value: IncomeLevel }
+  | { type: 'money'; delta: number };
+
+// ─── Shared Eligibility ────────────────────────────────────────────────────
+// Used to gate both events and activities (and individual activity outcomes).
+
+export interface EligibilityReq {
+  flags?: string[];
+  notFlags?: string[];
+  familyClass?: FamilyClass[];
+  familyStability?: FamilyStability[];
+  minWound?: Partial<Record<WoundType, number>>;
+  minStat?: Partial<Record<StatType, number>>;
+  maxStat?: Partial<Record<StatType, number>>;
+  minMoney?: number;
+  hasRelationshipType?: Relationship['type'][];
+}
 
 export interface Choice {
   text: string;
@@ -97,13 +114,7 @@ export interface GameEvent {
   id: string;
   ageRange: [number, number];
   weight: 'consequence' | 'chaos';
-  requires?: {
-    flags?: string[];
-    notFlags?: string[];
-    familyClass?: FamilyClass[];
-    familyStability?: FamilyStability[];
-    minWound?: Partial<Record<WoundType, number>>;
-  };
+  requires?: EligibilityReq;
   narrative: string;
   choices?: Choice[];
   autoConsequences?: ConsequenceType[];
@@ -118,6 +129,7 @@ export interface LifeEvent {
   age: number;
   text: string;
   isChoice?: boolean;
+  kind?: 'event' | 'choice' | 'activity';
 }
 
 export interface GameState {
@@ -128,6 +140,8 @@ export interface GameState {
   pendingEvent: GameEvent | null;
   firedEventIds: Set<string>;
   tapSpeed: 1 | 2 | 4; // years per tap
+  // activityId (or `activityId:targetId`) -> age last performed, for cooldowns
+  activityLog: Record<string, number>;
 }
 
 // ─── New Game Config ───────────────────────────────────────────────────────
